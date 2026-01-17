@@ -319,6 +319,41 @@ export const PLAZAS_MTY: Plaza[] = [
     tieneSucursalCT: false,
     esPropuesta: false,
     notas: 'Buen flujo, costo moderado. Potencial para expansión.'
+  },
+
+  // ========== PROPUESTA: PLAZA ANDENES UNIVERSIDAD ==========
+  {
+    id: 'plaza-009',
+    nombre: 'Plaza Andenes Universidad',
+    direccion: 'Av. Universidad 1250, Col. Anáhuac, 66450',
+    lat: 25.74407159209503,
+    lng: -100.30098821762375,
+    municipio: 'San Nicolás de los Garza',
+    tiendasAncla: ['Locales comerciales variados'],
+    superficieM2: 8000,
+    niveles: 2,
+    estacionamientoGratis: true,
+    nivelSocioeconomico: 'C+',
+    perfilVisitante: 'Estudiantes universitarios, familias zona norte, trabajadores',
+    flujoPeatonalEstimado: {
+      lunes: 550,
+      martes: 580,
+      miercoles: 600,
+      jueves: 620,
+      viernes: 780,
+      sabado: 700,
+      domingo: 500
+    },
+    horasPico: ['12:00-14:00', '18:00-20:00'],
+    horarioApertura: '10:00',
+    horarioCierre: '21:00',
+    cercaMetrorrey: false, // Estación Anáhuac a 18 min caminando
+    rutasBus: ['064', '088', '209', '213', '221', '232', 'SNB'],
+    rentaEstimadaM2: 380,
+    tieneSucursalCT: false,
+    esPropuesta: true, // PROPUESTA DE ANÁLISIS
+    notas: 'PROPUESTA. Zona universitaria con alto flujo estudiantil. A 500m de Av. Sendero Divisorio. Ideal para fast food según análisis de mercado. Conecta con Apodaca, Escobedo y Monterrey.',
+    sitioWeb: 'https://www.behome.mx/propiedad/plaza-andenes-ave-universidad-san-nicolas-nl-2/'
   }
 ];
 

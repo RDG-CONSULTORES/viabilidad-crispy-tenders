@@ -182,6 +182,22 @@ export const SUCURSALES_CRISPY_TENDERS: Sucursal[] = [
     horarioCierre: '21:00',
     diasOperacion: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
     notas: 'PROPUESTA DE ANÁLISIS - Cerca de Plaza Platino y Parque Deportivo Benito Juárez'
+  },
+  {
+    id: 'ct-011',
+    nombre: 'Crispy Tenders Plaza Andenes Universidad',
+    plaza: 'Plaza Andenes Universidad',
+    direccion: 'Av. Universidad 1250, Col. Anáhuac, 66450',
+    lat: 25.74407159209503,
+    lng: -100.30098821762375,
+    municipio: 'San Nicolás de los Garza',
+    status: 'propuesta',
+    ticketPromedio: 185,
+    inversionInicial: 750000,
+    horarioApertura: '10:00',
+    horarioCierre: '21:00',
+    diasOperacion: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
+    notas: 'PROPUESTA - Zona universitaria, alto flujo estudiantil. Ideal para fast food. Conecta con Apodaca, Escobedo y Monterrey.'
   }
 ];
 
