@@ -354,6 +354,41 @@ export const PLAZAS_MTY: Plaza[] = [
     esPropuesta: true, // PROPUESTA DE ANÁLISIS
     notas: 'PROPUESTA. Zona universitaria con alto flujo estudiantil. A 500m de Av. Sendero Divisorio. Ideal para fast food según análisis de mercado. Conecta con Apodaca, Escobedo y Monterrey.',
     sitioWeb: 'https://www.behome.mx/propiedad/plaza-andenes-ave-universidad-san-nicolas-nl-2/'
+  },
+
+  // ========== PROPUESTA: ALAIA CUMBRES CENTER (NUEVO 2025) ==========
+  {
+    id: 'plaza-010',
+    nombre: 'Alaia Cumbres Center',
+    direccion: 'Av. Paseo de Los Leones #500, Col. Cumbres 4 Sector, 64349',
+    lat: 25.7180,  // Aproximado zona Cumbres
+    lng: -100.3850,
+    municipio: 'Monterrey',
+    tiendasAncla: ['Food Court', 'Locales comerciales premium'],
+    superficieM2: 45000,
+    niveles: 5,
+    estacionamientoGratis: false,
+    nivelSocioeconomico: 'B',
+    perfilVisitante: 'Residentes Cumbres, familias jóvenes profesionistas, clase media-alta',
+    flujoPeatonalEstimado: {
+      lunes: 450,
+      martes: 480,
+      miercoles: 500,
+      jueves: 550,
+      viernes: 750,
+      sabado: 950,
+      domingo: 800
+    },
+    horasPico: ['12:00-14:00', '18:00-21:00'],
+    horarioApertura: '10:00',
+    horarioCierre: '21:00',
+    cercaMetrorrey: false,
+    rutasBus: ['Rutas Cumbres', 'Periférico'],
+    rentaEstimadaM2: 650, // Plaza nueva = renta premium
+    tieneSucursalCT: false,
+    esPropuesta: true,
+    notas: 'PROPUESTA - Plaza nueva apertura Feb 2025. Concepto "mini ciudad" con Food Court climatizado, terrazas, +200 locales. Zona Cumbres clase media-alta. OPORTUNIDAD: Primeros en entrar.',
+    sitioWeb: 'https://quantiumdesarrollos.com/desarrollos/alaia-cumbres-center-monterrey/'
   }
 ];
 

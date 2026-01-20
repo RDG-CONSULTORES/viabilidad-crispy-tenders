@@ -198,6 +198,22 @@ export const SUCURSALES_CRISPY_TENDERS: Sucursal[] = [
     horarioCierre: '21:00',
     diasOperacion: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
     notas: 'PROPUESTA - Zona universitaria, alto flujo estudiantil. Ideal para fast food. Conecta con Apodaca, Escobedo y Monterrey.'
+  },
+  {
+    id: 'ct-012',
+    nombre: 'Crispy Tenders Alaia Cumbres',
+    plaza: 'Alaia Cumbres Center',
+    direccion: 'Av. Paseo de Los Leones #500, Col. Cumbres 4 Sector, 64349',
+    lat: 25.7180,
+    lng: -100.3850,
+    municipio: 'Monterrey',
+    status: 'propuesta',
+    ticketPromedio: 210, // Zona de mayor poder adquisitivo
+    inversionInicial: 850000, // Plaza nueva = mayor inversión
+    horarioApertura: '10:00',
+    horarioCierre: '21:00',
+    diasOperacion: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
+    notas: 'PROPUESTA - Plaza nueva Feb 2025. Food Court climatizado. Zona Cumbres NSE B. VENTAJA: Ser primeros en entrar a plaza nueva.'
   }
 ];
 
