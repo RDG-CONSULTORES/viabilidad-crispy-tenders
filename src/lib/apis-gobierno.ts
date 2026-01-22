@@ -347,7 +347,11 @@ export async function obtenerIndicadoresNuevoLeon(): Promise<{
     obtenerIndicadorINEGI(INDICADORES_CLAVE.INFLACION_MENSUAL, '0700'), // Nacional
   ]);
 
-  return { poblacion, empleados, inflacion };
+  return {
+    poblacion: poblacion ?? undefined,
+    empleados: empleados ?? undefined,
+    inflacion: inflacion ?? undefined
+  };
 }
 
 // ========== DATOS AGEB (PRECARGADOS) ==========
