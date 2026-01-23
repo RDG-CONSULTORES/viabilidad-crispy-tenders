@@ -3,6 +3,7 @@ import { buscarLugaresCercanos, buscarCompetidoresPollo, PlaceResult } from '@/l
 import { analizarAccesibilidad } from '@/lib/mapbox';
 import { obtenerRiesgoMunicipio, MUNICIPIOS_AMM } from '@/lib/apis-gobierno';
 import { obtenerFlujoTrafico, HERETrafficFlow } from '@/lib/here';
+import { analizarAfluenciaPlaza, calcularScoreAfluencia, getNivelAfluencia, AfluenciaData } from '@/lib/besttime';
 
 /**
  * GET /api/buscar-plazas
@@ -63,6 +64,17 @@ interface PlazaEnriquecida {
     velocidadLibreKmh: number;
     nivel: 'fluido' | 'lento' | 'congestionado' | 'detenido';
     impactoDelivery: string;
+  };
+
+  // Afluencia (BestTime)
+  afluencia?: {
+    promedioSemanal: number;
+    nivel: string;
+    color: string;
+    mejorDia: string;
+    peorDia: string;
+    horasPico: { inicio: number; fin: number; intensidad: number }[];
+    score: number;
   };
 
   // Scoring
@@ -307,7 +319,43 @@ async function enriquecerPlaza(plaza: PlaceResult): Promise<PlazaEnriquecida> {
     console.error('Error obteniendo tráfico:', e);
   }
 
-  // 5. Scoring por rating de la plaza
+  // 5. Obtener afluencia de personas (BestTime)
+  let afluencia: PlazaEnriquecida['afluencia'];
+  try {
+    const afluenciaData = await analizarAfluenciaPlaza(plaza.name, plaza.address);
+    if (afluenciaData) {
+      const { score: afluenciaScore } = calcularScoreAfluencia(afluenciaData);
+      const nivel = getNivelAfluencia(afluenciaData.promedioSemanal);
+
+      afluencia = {
+        promedioSemanal: afluenciaData.promedioSemanal,
+        nivel: nivel.texto,
+        color: nivel.color,
+        mejorDia: afluenciaData.mejorDia,
+        peorDia: afluenciaData.peorDia,
+        horasPico: afluenciaData.horasPico.slice(0, 3), // Top 3 horas pico
+        score: afluenciaScore
+      };
+
+      // Scoring por afluencia
+      if (afluenciaData.promedioSemanal >= 70) {
+        score += 15;
+        factoresPositivos.push(`Muy alta afluencia (${afluenciaData.promedioSemanal}%)`);
+      } else if (afluenciaData.promedioSemanal >= 50) {
+        score += 10;
+        factoresPositivos.push(`Buena afluencia (${afluenciaData.promedioSemanal}%)`);
+      } else if (afluenciaData.promedioSemanal >= 30) {
+        score += 5;
+      } else {
+        score -= 5;
+        factoresNegativos.push(`Baja afluencia (${afluenciaData.promedioSemanal}%)`);
+      }
+    }
+  } catch (e) {
+    console.error('Error obteniendo afluencia:', e);
+  }
+
+  // 6. Scoring por rating de la plaza
   if (plaza.rating) {
     if (plaza.rating >= 4.5) {
       score += 10;
@@ -320,7 +368,7 @@ async function enriquecerPlaza(plaza: PlaceResult): Promise<PlazaEnriquecida> {
     }
   }
 
-  // 6. Scoring por reviews (indicador de tráfico)
+  // 7. Scoring por reviews (indicador de tráfico)
   if (plaza.totalReviews) {
     if (plaza.totalReviews > 1000) {
       score += 10;
@@ -361,6 +409,7 @@ async function enriquecerPlaza(plaza: PlaceResult): Promise<PlazaEnriquecida> {
     competencia,
     riesgo,
     trafico,
+    afluencia,
     score,
     clasificacion,
     factoresPositivos,

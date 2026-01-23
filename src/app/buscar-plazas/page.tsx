@@ -34,6 +34,15 @@ interface PlazaResult {
     nivel: 'fluido' | 'lento' | 'congestionado' | 'detenido';
     impactoDelivery: string;
   };
+  afluencia?: {
+    promedioSemanal: number;
+    nivel: string;
+    color: string;
+    mejorDia: string;
+    peorDia: string;
+    horasPico: { inicio: number; fin: number; intensidad: number }[];
+    score: number;
+  };
   score: number;
   clasificacion: 'EXCELENTE' | 'BUENA' | 'EVALUAR' | 'RIESGOSA';
   factoresPositivos: string[];
@@ -319,6 +328,11 @@ export default function BuscarPlazasPage() {
                             🚗 {plaza.trafico.nivel}
                           </span>
                         )}
+                        {plaza.afluencia && (
+                          <span className="flex items-center gap-1" style={{ color: plaza.afluencia.color }}>
+                            👥 {plaza.afluencia.promedioSemanal}%
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -428,6 +442,45 @@ export default function BuscarPlazasPage() {
                       <div className="mt-2 p-2 bg-gray-50 rounded text-xs">
                         {plazaSeleccionada.trafico.impactoDelivery}
                       </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Afluencia */}
+                {plazaSeleccionada.afluencia && (
+                  <div className="bg-white rounded-lg shadow-md p-4">
+                    <h3 className="font-semibold text-gray-700 mb-3">👥 Afluencia de Personas</h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-500">Nivel:</span>
+                        <span className="font-medium px-2 py-1 rounded" style={{ backgroundColor: `${plazaSeleccionada.afluencia.color}20`, color: plazaSeleccionada.afluencia.color }}>
+                          {plazaSeleccionada.afluencia.nivel}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Promedio semanal:</span>
+                        <span className="font-medium">{plazaSeleccionada.afluencia.promedioSemanal}%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Mejor día:</span>
+                        <span className="font-medium text-green-600">{plazaSeleccionada.afluencia.mejorDia}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Peor día:</span>
+                        <span className="font-medium text-red-600">{plazaSeleccionada.afluencia.peorDia}</span>
+                      </div>
+                      {plazaSeleccionada.afluencia.horasPico.length > 0 && (
+                        <div className="mt-2 p-2 bg-gray-50 rounded">
+                          <div className="text-xs text-gray-500 mb-1">Horas pico:</div>
+                          <div className="flex flex-wrap gap-1">
+                            {plazaSeleccionada.afluencia.horasPico.map((hp, i) => (
+                              <span key={i} className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded">
+                                {hp.inicio}:00 - {hp.fin}:00
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

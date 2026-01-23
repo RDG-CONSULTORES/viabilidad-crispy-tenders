@@ -32,17 +32,17 @@ const CONFIDENCE_APIS = [
   { nombre: 'Google Places', status: 'activo', confianza: 15, descripcion: 'Búsqueda de plazas y competencia' },
   { nombre: 'Mapbox Isocronas', status: 'activo', confianza: 15, descripcion: 'Área de cobertura y accesibilidad' },
   { nombre: 'HERE Traffic', status: 'activo', confianza: 15, descripcion: 'Tráfico en tiempo real' },
+  { nombre: 'BestTime.app', status: 'activo', confianza: 10, descripcion: 'Afluencia de personas por hora' },
   { nombre: 'CENAPRED Riesgos', status: 'activo', confianza: 10, descripcion: 'Riesgo de inundación' },
   { nombre: 'INEGI Indicadores', status: 'activo', confianza: 10, descripcion: 'Datos económicos NL' },
   { nombre: 'Scoring Interno', status: 'activo', confianza: 10, descripcion: 'Algoritmo de viabilidad' },
 ];
 
 const APIS_PENDIENTES = [
-  { nombre: 'BestTime.app', confianza: 10, costo: '$99/mes', descripcion: 'Afluencia por hora real' },
   { nombre: 'Geolytix / CARTO', confianza: 8, costo: 'Cotizar', descripcion: 'NSE por AGEB' },
+  { nombre: 'Satellite Imagery', confianza: 7, costo: '$500/mes', descripcion: 'Estacionamiento y densidad' },
   { nombre: 'Data México', confianza: 5, costo: 'Gratis', descripcion: 'Datos económicos detallados' },
   { nombre: 'Yelp/Foursquare', confianza: 5, costo: '$200/mes', descripcion: 'Reviews y categorías' },
-  { nombre: 'Satellite Imagery', confianza: 7, costo: '$500/mes', descripcion: 'Estacionamiento y densidad' },
 ];
 
 export default function DashboardEjecutivo() {
