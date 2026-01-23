@@ -121,11 +121,33 @@ export async function GET(request: NextRequest) {
 
   try {
     // 1. Buscar plazas comerciales con Google Places
-    const plazasRaw = await buscarLugaresCercanos(
-      lat, lng, radio,
-      'plaza comercial centro comercial',
-      'shopping_mall'
-    );
+    // Usar múltiples queries para mejores resultados
+    const queries = [
+      { keyword: 'plaza comercial', type: 'shopping_mall' },
+      { keyword: 'centro comercial', type: 'shopping_mall' },
+      { keyword: 'mall', type: 'shopping_mall' },
+    ];
+
+    const plazasSet = new Map<string, PlaceResult>();
+
+    for (const query of queries) {
+      const results = await buscarLugaresCercanos(
+        lat, lng, radio,
+        query.keyword,
+        query.type
+      );
+
+      for (const place of results) {
+        if (!plazasSet.has(place.placeId)) {
+          plazasSet.set(place.placeId, place);
+        }
+      }
+
+      // Rate limiting
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    const plazasRaw = Array.from(plazasSet.values());
 
     if (plazasRaw.length === 0) {
       return NextResponse.json({

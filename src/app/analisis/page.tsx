@@ -5,6 +5,8 @@ import dynamic from 'next/dynamic';
 import { PLAZAS_MTY, Plaza, calcularFlujoPromedio, getDiaMayorFlujo } from '@/data/plazas';
 import { getCompetidoresEnRadio, COLORES_MARCAS } from '@/data/competencia';
 import { calcularViabilidad, CONFIG_DEFAULT, ResultadoScoring } from '@/lib/scoring';
+import { analizarCanibalizacion, AnalisisCanibalizacion } from '@/lib/canibalizacion';
+import { abrirReporteParaImprimir, descargarReporteHTML } from '@/lib/generar-reporte';
 
 // Mapa dinámico (no SSR)
 const MapaAnalisis = dynamic(() => import('@/components/maps/MapaAnalisis'), {
@@ -50,6 +52,30 @@ export default function AnalisisPage() {
     const mayor = getDiaMayorFlujo(plaza.flujoPeatonalEstimado);
     return { promedio, mayor };
   }, [plaza]);
+
+  // Análisis de canibalización
+  const canibalizacion = useMemo(() => {
+    return analizarCanibalizacion(plaza);
+  }, [plaza]);
+
+  // Handlers para botones de acción
+  const handleGenerarPDF = () => {
+    abrirReporteParaImprimir({
+      plaza,
+      scoring: analisis,
+      canibalizacion,
+      fechaGeneracion: new Date().toISOString(),
+    });
+  };
+
+  const handleDescargarHTML = () => {
+    descargarReporteHTML({
+      plaza,
+      scoring: analisis,
+      canibalizacion,
+      fechaGeneracion: new Date().toISOString(),
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -325,6 +351,72 @@ export default function AnalisisPage() {
         </div>
       </div>
 
+      {/* Análisis de Canibalización */}
+      {plaza.esPropuesta && (
+        <div className={`rounded-lg shadow-sm border p-4 ${
+          canibalizacion.resumen.riesgoGeneral === 'bajo' ? 'bg-green-50 border-green-200' :
+          canibalizacion.resumen.riesgoGeneral === 'medio' ? 'bg-yellow-50 border-yellow-200' :
+          canibalizacion.resumen.riesgoGeneral === 'alto' ? 'bg-orange-50 border-orange-200' :
+          'bg-red-50 border-red-200'
+        }`}>
+          <h3 className="font-semibold text-gray-700 mb-4 flex items-center gap-2">
+            🎯 Análisis de Canibalización
+            <span className={`px-2 py-1 rounded text-xs font-medium ${
+              canibalizacion.resumen.riesgoGeneral === 'bajo' ? 'bg-green-200 text-green-800' :
+              canibalizacion.resumen.riesgoGeneral === 'medio' ? 'bg-yellow-200 text-yellow-800' :
+              canibalizacion.resumen.riesgoGeneral === 'alto' ? 'bg-orange-200 text-orange-800' :
+              'bg-red-200 text-red-800'
+            }`}>
+              Riesgo: {canibalizacion.resumen.riesgoGeneral.toUpperCase()}
+            </span>
+          </h3>
+
+          <div className="grid grid-cols-3 gap-4 mb-4">
+            <div className="bg-white/80 p-3 rounded-lg">
+              <div className="text-2xl font-bold text-gray-800">{canibalizacion.resumen.totalSucursalesAfectadas}</div>
+              <div className="text-sm text-gray-600">Sucursales afectadas</div>
+            </div>
+            <div className="bg-white/80 p-3 rounded-lg">
+              <div className="text-2xl font-bold text-gray-800">{canibalizacion.resumen.canibalizacionPromedio}%</div>
+              <div className="text-sm text-gray-600">Canibalización promedio</div>
+            </div>
+            <div className="bg-white/80 p-3 rounded-lg">
+              <div className="text-2xl font-bold text-gray-800">{canibalizacion.tradeAreaOverlap.radio2km}%</div>
+              <div className="text-sm text-gray-600">Overlap trade area (2km)</div>
+            </div>
+          </div>
+
+          <p className="text-sm text-gray-700 mb-3">{canibalizacion.resumen.recomendacion}</p>
+
+          {canibalizacion.sucursalesAfectadas.filter(s => s.canibalizacionPct > 5).length > 0 && (
+            <div className="mt-4">
+              <h4 className="text-sm font-medium text-gray-700 mb-2">Sucursales con impacto significativo:</h4>
+              <div className="space-y-2">
+                {canibalizacion.sucursalesAfectadas
+                  .filter(s => s.canibalizacionPct > 5)
+                  .slice(0, 4)
+                  .map(s => (
+                    <div key={s.sucursal.id} className="flex justify-between items-center bg-white/60 p-2 rounded text-sm">
+                      <span>{s.sucursal.nombre}</span>
+                      <div className="flex gap-4">
+                        <span className="text-gray-500">{s.distanciaKm} km</span>
+                        <span className={`font-medium ${
+                          s.impactoNivel === 'critico' ? 'text-red-600' :
+                          s.impactoNivel === 'alto' ? 'text-orange-600' :
+                          s.impactoNivel === 'medio' ? 'text-yellow-600' :
+                          'text-green-600'
+                        }`}>
+                          -{s.canibalizacionPct}%
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Proyección Financiera */}
       <div className="bg-white rounded-lg shadow-sm border p-4">
         <h3 className="font-semibold text-gray-700 mb-4">💰 Proyección Financiera</h3>
@@ -356,22 +448,33 @@ export default function AnalisisPage() {
         </div>
 
         <p className="text-xs text-gray-400 mt-4">
-          * Proyecciones basadas en flujo estimado, ticket promedio de ${CONFIG_DEFAULT.negocio.ticketPromedio} MXN
-          y tasa de conversión del 2%. Los resultados reales pueden variar.
+          * Proyecciones basadas en flujo estimado con <strong>modelo financiero dinámico</strong>:
+          tasa de conversión variable por NSE ({plaza.nivelSocioeconomico} = {
+            { 'A': '1.8%', 'B': '2.5%', 'C+': '3.0%', 'C': '2.8%', 'D': '2.0%' }[plaza.nivelSocioeconomico] || '2.5%'
+          }) y ticket ajustado por nivel socioeconómico.
         </p>
       </div>
 
       {/* Botones de Acción */}
       <div className="flex gap-4">
-        <button className="bg-crispy-500 text-white px-6 py-3 rounded-lg hover:bg-crispy-600 transition flex items-center gap-2">
+        <button
+          onClick={handleGenerarPDF}
+          className="bg-crispy-500 text-white px-6 py-3 rounded-lg hover:bg-crispy-600 transition flex items-center gap-2"
+        >
           📄 Generar Reporte PDF
         </button>
-        <button className="bg-gray-100 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-200 transition flex items-center gap-2">
-          💾 Guardar Análisis
+        <button
+          onClick={handleDescargarHTML}
+          className="bg-gray-100 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-200 transition flex items-center gap-2"
+        >
+          📥 Descargar Reporte HTML
         </button>
-        <button className="bg-gray-100 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-200 transition flex items-center gap-2">
-          📊 Comparar con Otra Plaza
-        </button>
+        <a
+          href={`/checklist?plazaId=${plaza.id}`}
+          className="bg-gray-100 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-200 transition flex items-center gap-2"
+        >
+          ✅ Checklist de Campo
+        </a>
       </div>
     </div>
   );

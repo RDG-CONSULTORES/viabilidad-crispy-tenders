@@ -275,15 +275,40 @@ export function calcularViabilidad(
   if (scoreDetallado.costoRenta < 50) factoresCriticos.push('Costo de renta elevado');
   if (scoreDetallado.visibilidad < 50) factoresCriticos.push('Visibilidad limitada');
 
-  // Proyección financiera
+  // Proyección financiera con tasa de conversión variable por NSE
   const flujoPromedio = calcularFlujoPromedio(plaza.flujoPeatonalEstimado);
-  const tasaConversion = 0.02; // 2% de personas que pasan compran
+
+  // Tasa de conversión varía según NSE (nivel socioeconómico)
+  // NSE alto = mayor disposición a pagar pero menos volumen
+  // NSE medio = balance óptimo para fast food de pollo
+  const TASAS_CONVERSION_POR_NSE: Record<string, number> = {
+    'A': 0.018,   // 1.8% - Alto ingreso pero menor frecuencia fast food
+    'B': 0.025,   // 2.5% - Buen balance precio/volumen
+    'C+': 0.030,  // 3.0% - NSE óptimo para Crispy Tenders (target market)
+    'C': 0.028,   // 2.8% - Buen volumen pero menor ticket promedio
+    'D': 0.020,   // 2.0% - Menor capacidad de gasto
+  };
+
+  const tasaConversion = TASAS_CONVERSION_POR_NSE[plaza.nivelSocioeconomico] || 0.025;
+
+  // Ajustar ticket promedio por NSE
+  const AJUSTE_TICKET_POR_NSE: Record<string, number> = {
+    'A': 1.25,   // +25% ticket promedio en zonas premium
+    'B': 1.10,   // +10% en zonas de nivel alto
+    'C+': 1.00,  // Baseline
+    'C': 0.90,   // -10% en zonas de nivel medio
+    'D': 0.80,   // -20% en zonas de nivel bajo
+  };
+
+  const ajusteTicket = AJUSTE_TICKET_POR_NSE[plaza.nivelSocioeconomico] || 1.0;
+  const ticketAjustado = config.negocio.ticketPromedio * ajusteTicket;
+
   const clientesDia = Math.round(flujoPromedio * tasaConversion * 10); // 10 horas operación
 
-  const ventasMensuales = clientesDia * config.negocio.ticketPromedio * 30;
+  const ventasMensuales = clientesDia * ticketAjustado * 30;
   const utilidadMensual = ventasMensuales * config.negocio.margenOperativo;
-  const paybackMeses = config.negocio.inversionBase / utilidadMensual;
-  const roiAnual = (utilidadMensual * 12 / config.negocio.inversionBase) * 100;
+  const paybackMeses = utilidadMensual > 0 ? config.negocio.inversionBase / utilidadMensual : 999;
+  const roiAnual = utilidadMensual > 0 ? (utilidadMensual * 12 / config.negocio.inversionBase) * 100 : 0;
 
   return {
     plaza,
