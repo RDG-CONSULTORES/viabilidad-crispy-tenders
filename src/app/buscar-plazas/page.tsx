@@ -54,6 +54,14 @@ interface PlazaResult {
       total: number;
     };
   };
+  nivelSocioeconomico?: {
+    nivel: string;
+    nivelTexto: string;
+    color: string;
+    salarioPromedio: number;
+    empresasTotal: number;
+    empleoTotal: number;
+  };
   score: number;
   clasificacion: 'EXCELENTE' | 'BUENA' | 'EVALUAR' | 'RIESGOSA';
   factoresPositivos: string[];
@@ -551,6 +559,33 @@ export default function BuscarPlazasPage() {
                         <div className="text-xs">
                           <span className="text-gray-500">Restaurantes:</span> {plazaSeleccionada.densidadComercial.servicios.restaurantes}
                         </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Nivel Socioeconómico */}
+                {plazaSeleccionada.nivelSocioeconomico && (
+                  <div className="bg-white rounded-lg shadow-md p-4">
+                    <h3 className="font-semibold text-gray-700 mb-3">💰 Nivel Socioeconómico</h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-500">NSE:</span>
+                        <span className="font-medium px-2 py-1 rounded" style={{ backgroundColor: `${plazaSeleccionada.nivelSocioeconomico.color}20`, color: plazaSeleccionada.nivelSocioeconomico.color }}>
+                          {plazaSeleccionada.nivelSocioeconomico.nivelTexto}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Salario promedio:</span>
+                        <span className="font-medium">${plazaSeleccionada.nivelSocioeconomico.salarioPromedio.toLocaleString()}/mes</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Empresas en zona:</span>
+                        <span className="font-medium">{plazaSeleccionada.nivelSocioeconomico.empresasTotal.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Empleo total:</span>
+                        <span className="font-medium">{plazaSeleccionada.nivelSocioeconomico.empleoTotal.toLocaleString()}</span>
                       </div>
                     </div>
                   </div>

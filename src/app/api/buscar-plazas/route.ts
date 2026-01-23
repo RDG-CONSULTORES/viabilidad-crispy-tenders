@@ -5,6 +5,7 @@ import { obtenerRiesgoMunicipio, MUNICIPIOS_AMM } from '@/lib/apis-gobierno';
 import { obtenerFlujoTrafico, HERETrafficFlow } from '@/lib/here';
 import { analizarAfluenciaPlaza, calcularScoreAfluencia, getNivelAfluencia, AfluenciaData } from '@/lib/besttime';
 import { analizarServiciosArea, getDensidadInfo } from '@/lib/foursquare';
+import { obtenerIndicadoresEconomicos, calcularScoreEconomico, getNivelEconomicoInfo, obtenerMunicipioIdPorCoordenadas } from '@/lib/datamexico';
 
 /**
  * GET /api/buscar-plazas
@@ -89,6 +90,16 @@ interface PlazaEnriquecida {
       restaurantes: number;
       total: number;
     };
+  };
+
+  // Nivel Socioeconómico (Data México)
+  nivelSocioeconomico?: {
+    nivel: string;
+    nivelTexto: string;
+    color: string;
+    salarioPromedio: number;
+    empresasTotal: number;
+    empleoTotal: number;
   };
 
   // Scoring
@@ -402,7 +413,44 @@ async function enriquecerPlaza(plaza: PlaceResult): Promise<PlazaEnriquecida> {
     console.error('Error obteniendo densidad comercial:', e);
   }
 
-  // 7. Scoring por rating de la plaza
+  // 7. Obtener nivel socioeconómico del municipio (Data México)
+  let nivelSocioeconomico: PlazaEnriquecida['nivelSocioeconomico'];
+  try {
+    const municipioId = obtenerMunicipioIdPorCoordenadas(plaza.lat, plaza.lng);
+    const indicadores = await obtenerIndicadoresEconomicos(municipioId);
+
+    if (indicadores) {
+      const nivelInfo = getNivelEconomicoInfo(indicadores.nivelEconomicoEstimado);
+      const { score: nseScore } = calcularScoreEconomico(indicadores);
+
+      nivelSocioeconomico = {
+        nivel: indicadores.nivelEconomicoEstimado,
+        nivelTexto: nivelInfo.texto,
+        color: nivelInfo.color,
+        salarioPromedio: indicadores.salarioPromedio,
+        empresasTotal: indicadores.empresasTotal,
+        empleoTotal: indicadores.empleoTotal,
+      };
+
+      // Scoring por nivel socioeconómico
+      if (indicadores.nivelEconomicoEstimado === 'muy_alto') {
+        score += 15;
+        factoresPositivos.push(`Zona NSE muy alto (${nivelInfo.texto})`);
+      } else if (indicadores.nivelEconomicoEstimado === 'alto') {
+        score += 10;
+        factoresPositivos.push(`Zona NSE alto (${nivelInfo.texto})`);
+      } else if (indicadores.nivelEconomicoEstimado === 'medio') {
+        score += 5;
+      } else {
+        score -= 5;
+        factoresNegativos.push(`Zona NSE bajo (${nivelInfo.texto})`);
+      }
+    }
+  } catch (e) {
+    console.error('Error obteniendo nivel socioeconómico:', e);
+  }
+
+  // 8. Scoring por rating de la plaza
   if (plaza.rating) {
     if (plaza.rating >= 4.5) {
       score += 10;
@@ -415,7 +463,7 @@ async function enriquecerPlaza(plaza: PlaceResult): Promise<PlazaEnriquecida> {
     }
   }
 
-  // 8. Scoring por reviews (indicador de tráfico)
+  // 9. Scoring por reviews (indicador de tráfico)
   if (plaza.totalReviews) {
     if (plaza.totalReviews > 1000) {
       score += 10;
@@ -458,6 +506,7 @@ async function enriquecerPlaza(plaza: PlaceResult): Promise<PlazaEnriquecida> {
     trafico,
     afluencia,
     densidadComercial,
+    nivelSocioeconomico,
     score,
     clasificacion,
     factoresPositivos,
