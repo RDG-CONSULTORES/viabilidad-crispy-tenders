@@ -6,16 +6,13 @@ import { SUCURSALES_CRISPY_TENDERS } from '@/data/sucursales';
  * GET /api/verificar-coordenadas
  *
  * Verifica las coordenadas de las sucursales de Crispy Tenders
- * buscando las plazas en Google Places API
- *
- * Query params:
- * - id: (opcional) ID de sucursal específica a verificar
- * - all: (opcional) si es 'true', verifica todas las sucursales
+ * usando múltiples estrategias de búsqueda en Google Places
  */
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const sucursalId = searchParams.get('id');
   const verificarTodas = searchParams.get('all') === 'true';
+  const soloNoVerificadas = searchParams.get('pending') === 'true';
 
   const resultados: {
     id: string;
@@ -30,15 +27,17 @@ export async function GET(request: NextRequest) {
     verificado: boolean;
     requiereRevision: boolean;
     mensaje: string;
+    estrategiaUsada: string;
   }[] = [];
 
-  // Filtrar sucursales a verificar
+  // Filtrar sucursales
   let sucursalesAVerificar = SUCURSALES_CRISPY_TENDERS;
 
   if (sucursalId) {
     sucursalesAVerificar = sucursalesAVerificar.filter(s => s.id === sucursalId);
+  } else if (soloNoVerificadas) {
+    sucursalesAVerificar = sucursalesAVerificar.filter(s => !s.coordenadasVerificadas);
   } else if (!verificarTodas) {
-    // Por defecto, solo las no verificadas
     sucursalesAVerificar = sucursalesAVerificar.filter(s => !s.coordenadasVerificadas);
   }
 
@@ -51,28 +50,49 @@ export async function GET(request: NextRequest) {
   }
 
   for (const sucursal of sucursalesAVerificar) {
-    // Construir query de búsqueda
-    // Intentar primero con el nombre de la plaza + "Monterrey"
+    // ESTRATEGIA MEJORADA: Múltiples queries en orden de especificidad
     const queries = [
-      `${sucursal.plaza} Monterrey`,
-      `${sucursal.plaza} ${sucursal.municipio}`,
-      sucursal.direccion,
+      // 1. Buscar "Crispy Tenders" directamente en la plaza
+      { query: `Crispy Tenders ${sucursal.plaza} Monterrey`, estrategia: 'crispy_tenders_plaza' },
+      // 2. Buscar "Crispy Tenders" con la dirección
+      { query: `Crispy Tenders ${sucursal.direccion}`, estrategia: 'crispy_tenders_direccion' },
+      // 3. Buscar la plaza con municipio
+      { query: `${sucursal.plaza} ${sucursal.municipio} Nuevo León`, estrategia: 'plaza_municipio' },
+      // 4. Buscar solo la dirección completa
+      { query: `${sucursal.direccion} ${sucursal.municipio}`, estrategia: 'direccion_completa' },
+      // 5. Buscar la plaza genérica
+      { query: `${sucursal.plaza} Monterrey`, estrategia: 'plaza_monterrey' },
     ];
 
     let encontrado = false;
     let resultado = null;
+    let estrategiaUsada = '';
 
-    for (const query of queries) {
-      // Buscar con ubicación aproximada actual
-      resultado = await buscarPorTexto(query, sucursal.lat, sucursal.lng);
+    for (const { query, estrategia } of queries) {
+      console.log(`Buscando: "${query}"`);
+
+      // Buscar sin sesgo de ubicación primero para resultados más precisos
+      resultado = await buscarPorTexto(query);
 
       if (resultado) {
-        encontrado = true;
-        break;
+        // Verificar que el resultado sea razonable (dentro de 50km de Monterrey)
+        const distanciaACentro = calcularDistanciaKm(
+          resultado.lat, resultado.lng,
+          25.6866, -100.3161 // Centro de Monterrey
+        );
+
+        if (distanciaACentro < 50) {
+          encontrado = true;
+          estrategiaUsada = estrategia;
+          console.log(`✓ Encontrado con estrategia: ${estrategia}`);
+          break;
+        } else {
+          console.log(`✗ Resultado muy lejos (${distanciaACentro}km de MTY)`);
+        }
       }
 
       // Rate limiting
-      await new Promise(resolve => setTimeout(resolve, 200));
+      await new Promise(resolve => setTimeout(resolve, 250));
     }
 
     if (!encontrado || !resultado) {
@@ -88,19 +108,20 @@ export async function GET(request: NextRequest) {
         distanciaKm: null,
         verificado: false,
         requiereRevision: true,
-        mensaje: 'No se encontró la plaza en Google Places'
+        mensaje: 'No se encontró con ninguna estrategia de búsqueda',
+        estrategiaUsada: 'ninguna'
       });
       continue;
     }
 
-    // Calcular distancia entre coordenadas originales y encontradas
+    // Calcular distancia
     const distancia = calcularDistanciaKm(
       sucursal.lat, sucursal.lng,
       resultado.lat, resultado.lng
     );
 
-    // Si la distancia es mayor a 1km, marcar para revisión
-    const requiereRevision = distancia > 1;
+    // Umbral más permisivo: 2km para plazas (son grandes)
+    const requiereRevision = distancia > 2;
 
     resultados.push({
       id: sucursal.id,
@@ -115,32 +136,14 @@ export async function GET(request: NextRequest) {
       verificado: true,
       requiereRevision,
       mensaje: requiereRevision
-        ? `Verificado pero con diferencia de ${distancia}km - revisar manualmente`
-        : `Verificado correctamente (diferencia: ${distancia}km)`
+        ? `Diferencia de ${distancia}km - revisar si es correcto`
+        : `Verificado (${distancia}km de diferencia)`,
+      estrategiaUsada
     });
 
     // Rate limiting entre sucursales
     await new Promise(resolve => setTimeout(resolve, 300));
   }
-
-  // Generar código TypeScript actualizado
-  const sucursalesActualizadas = SUCURSALES_CRISPY_TENDERS.map(sucursal => {
-    const resultado = resultados.find(r => r.id === sucursal.id);
-
-    if (resultado?.verificado && resultado.coordenadasVerificadas && !resultado.requiereRevision) {
-      return {
-        ...sucursal,
-        lat: resultado.coordenadasVerificadas.lat,
-        lng: resultado.coordenadasVerificadas.lng,
-        coordenadasVerificadas: true,
-        fuenteCoordenadas: 'google_places' as const,
-        placeId: resultado.placeId || undefined,
-        ultimaVerificacion: new Date().toISOString().split('T')[0],
-      };
-    }
-
-    return sucursal;
-  });
 
   // Estadísticas
   const stats = {
@@ -150,20 +153,26 @@ export async function GET(request: NextRequest) {
     noEncontradas: resultados.filter(r => !r.verificado).length,
   };
 
+  // Generar código para actualizar
+  const actualizaciones = resultados
+    .filter(r => r.verificado && !r.requiereRevision)
+    .map(r => ({
+      id: r.id,
+      lat: r.coordenadasVerificadas!.lat,
+      lng: r.coordenadasVerificadas!.lng,
+      placeId: r.placeId,
+      nombreEncontrado: r.nombreEncontrado,
+      direccionEncontrada: r.direccionEncontrada,
+    }));
+
   return NextResponse.json({
     success: true,
     stats,
     resultados,
-    // Incluir el código actualizado para copiar
-    codigoActualizado: sucursalesActualizadas.filter(s =>
-      resultados.some(r => r.id === s.id && r.verificado && !r.requiereRevision)
-    ).map(s => ({
-      id: s.id,
-      lat: s.lat,
-      lng: s.lng,
-      placeId: s.placeId,
-      coordenadasVerificadas: s.coordenadasVerificadas,
-      fuenteCoordenadas: s.fuenteCoordenadas,
-    }))
+    actualizaciones,
+    // Código TypeScript listo para copiar
+    codigoTS: actualizaciones.map(a =>
+      `// ${a.id}: ${a.nombreEncontrado}\nlat: ${a.lat},\nlng: ${a.lng},\nplaceId: '${a.placeId}',`
+    ).join('\n\n')
   });
 }

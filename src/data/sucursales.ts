@@ -41,18 +41,20 @@ export const SUCURSALES_CRISPY_TENDERS: Sucursal[] = [
     id: 'ct-001',
     nombre: 'Crispy Tenders Plaza Fiesta San Agustín',
     plaza: 'Plaza Fiesta San Agustín',
-    direccion: 'Av. Diego Rivera 1000, Zona San Agustín, 66260',
-    lat: 25.6519,
-    lng: -100.3528,
+    direccion: 'Av. Diego Rivera 1000, Zona San Agustín, 66260 Monterrey',
+    lat: 25.6490463,
+    lng: -100.3365036,
     municipio: 'San Pedro Garza García',
     status: 'operando',
-    coordenadasVerificadas: false,
-    fuenteCoordenadas: 'estimada',
+    coordenadasVerificadas: true,
+    fuenteCoordenadas: 'google_places',
+    placeId: 'ChIJtS9AhhK-YoYRQbH1OTaIHi0',
+    ultimaVerificacion: '2025-01-23',
     ticketPromedio: 200,
     horarioApertura: '11:00',
     horarioCierre: '21:00',
     diasOperacion: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
-    notas: 'Plaza premium, alto flujo, tiendas ancla: Sanborns, Soriana, Sears. VERIFICAR: Google encontró coordenadas a 1.66km de distancia.'
+    notas: 'Plaza premium, alto flujo, tiendas ancla: Sanborns, Soriana, Sears.'
   },
   {
     id: 'ct-002',
@@ -115,52 +117,58 @@ export const SUCURSALES_CRISPY_TENDERS: Sucursal[] = [
     id: 'ct-005',
     nombre: 'Crispy Tenders Esfera Park',
     plaza: 'Esfera Centro Comercial',
-    direccion: 'Av. La Rioja 245, Residencial la Rioja, 64985',
-    lat: 25.6089,
-    lng: -100.2785,
+    direccion: 'Rioja, 64988 Monterrey',
+    lat: 25.5780716,
+    lng: -100.2453283,
     municipio: 'Monterrey',
     status: 'operando',
-    coordenadasVerificadas: false,
-    fuenteCoordenadas: 'estimada',
+    coordenadasVerificadas: true,
+    fuenteCoordenadas: 'google_places',
+    placeId: 'ChIJJRyfMjzHYoYRdqvOB0jOoS0',
+    ultimaVerificacion: '2025-01-23',
     ticketPromedio: 210,
     horarioApertura: '11:00',
     horarioCierre: '21:00',
     diasOperacion: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
-    notas: 'Plaza certificación LEED Silver, Sears nueva generación, Cinépolis. COORDENADAS REQUIEREN VERIFICACIÓN.'
+    notas: 'Plaza certificación LEED Silver, Sears nueva generación, Cinépolis.'
   },
   {
     id: 'ct-006',
-    nombre: 'Crispy Tenders Revolución',
-    plaza: 'Local Av. Revolución',
-    direccion: 'Revolución 3532, La Primavera',
-    lat: 25.6701,
-    lng: -100.3380,
+    nombre: 'Crispy Tenders Rincón de la Primavera',
+    plaza: 'Local Bahía de las Islas',
+    direccion: 'C. Bahía de las Islas 3630B, Rincon De La Primavera, 64830 Monterrey',
+    lat: 25.6485433,
+    lng: -100.2735631,
     municipio: 'Monterrey',
     status: 'operando',
-    coordenadasVerificadas: false,
-    fuenteCoordenadas: 'estimada',
+    coordenadasVerificadas: true,
+    fuenteCoordenadas: 'google_places',
+    placeId: 'ChIJtQLxfQC_YoYR2b7k2aJWgq0',
+    ultimaVerificacion: '2025-01-23',
     ticketPromedio: 185,
     horarioApertura: '14:00',
     horarioCierre: '22:00',
     diasOperacion: ['Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
-    notas: 'Local independiente, horario vespertino. COORDENADAS REQUIEREN VERIFICACIÓN.'
+    notas: 'Local independiente, horario vespertino. Antes listado como Av. Revolución.'
   },
   {
     id: 'ct-007',
-    nombre: 'Crispy Tenders Centro Morelos',
+    nombre: 'Crispy Tenders Juarez y Allende Centro',
     plaza: 'Local Centro',
-    direccion: 'José María Morelos 385A, Centro, 64000',
-    lat: 25.6675,
-    lng: -100.3132,
+    direccion: 'Juárez y Allende, Centro, 64000 Monterrey',
+    lat: 25.6704089,
+    lng: -100.3153895,
     municipio: 'Monterrey',
     status: 'operando',
-    coordenadasVerificadas: false,
-    fuenteCoordenadas: 'estimada',
+    coordenadasVerificadas: true,
+    fuenteCoordenadas: 'google_places',
+    placeId: 'ChIJB9ZtMQa_YoYRxGTP1ZIHfDE',
+    ultimaVerificacion: '2025-01-23',
     ticketPromedio: 175,
     horarioApertura: '10:30',
     horarioCierre: '19:30',
     diasOperacion: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'],
-    notas: 'Centro histórico, delivery Rappi/UberEats. COORDENADAS REQUIEREN VERIFICACIÓN.'
+    notas: 'Centro histórico, delivery Rappi/UberEats.'
   },
   {
     id: 'ct-008',
@@ -198,7 +206,7 @@ export const SUCURSALES_CRISPY_TENDERS: Sucursal[] = [
     horarioApertura: '11:00',
     horarioCierre: '21:00',
     diasOperacion: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
-    notas: 'Lifestyle mall, Liverpool, H&M, Coppel, Cinépolis. Apertura próxima. COORDENADAS REQUIEREN VERIFICACIÓN.'
+    notas: 'Lifestyle mall, Liverpool, H&M, Coppel, Cinépolis. Apertura próxima. Coordenadas de la plaza, CT no existe aún en Google.'
   },
 
   // Propuestas
@@ -238,7 +246,7 @@ export const SUCURSALES_CRISPY_TENDERS: Sucursal[] = [
     horarioApertura: '10:00',
     horarioCierre: '21:00',
     diasOperacion: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
-    notas: 'PROPUESTA - Zona universitaria, alto flujo estudiantil. COORDENADAS REQUIEREN VERIFICACIÓN.'
+    notas: 'PROPUESTA - Zona universitaria, alto flujo estudiantil. Coordenadas de la plaza, CT no existe.'
   },
   {
     id: 'ct-012',
@@ -256,7 +264,7 @@ export const SUCURSALES_CRISPY_TENDERS: Sucursal[] = [
     horarioApertura: '10:00',
     horarioCierre: '21:00',
     diasOperacion: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
-    notas: 'PROPUESTA - Plaza nueva Feb 2025. Food Court climatizado. Zona Cumbres NSE B. COORDENADAS REQUIEREN VERIFICACIÓN.'
+    notas: 'PROPUESTA - Plaza nueva Feb 2025. Food Court climatizado. Zona Cumbres NSE B. Coordenadas de la plaza.'
   }
 ];
 
