@@ -1,6 +1,9 @@
 /**
  * Sucursales de Crispy Tenders
  * Datos actualizados: Enero 2025
+ *
+ * IMPORTANTE: Las coordenadas requieren verificación con Google Maps
+ * El campo 'coordenadasVerificadas' indica si han sido validadas
  */
 
 export interface Sucursal {
@@ -12,6 +15,12 @@ export interface Sucursal {
   lng: number;
   municipio: string;
   status: 'operando' | 'proximamente' | 'propuesta';
+
+  // Verificación de datos
+  coordenadasVerificadas: boolean;
+  fuenteCoordenadas: 'google_places' | 'manual' | 'estimada';
+  ultimaVerificacion?: string;
+  placeId?: string; // Google Places ID si está verificado
 
   // Métricas de negocio
   ticketPromedio: number;
@@ -37,11 +46,13 @@ export const SUCURSALES_CRISPY_TENDERS: Sucursal[] = [
     lng: -100.3528,
     municipio: 'San Pedro Garza García',
     status: 'operando',
+    coordenadasVerificadas: false,
+    fuenteCoordenadas: 'estimada',
     ticketPromedio: 200,
     horarioApertura: '11:00',
     horarioCierre: '21:00',
     diasOperacion: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
-    notas: 'Plaza premium, alto flujo, tiendas ancla: Sanborns, Soriana, Sears'
+    notas: 'Plaza premium, alto flujo, tiendas ancla: Sanborns, Soriana, Sears. COORDENADAS REQUIEREN VERIFICACIÓN.'
   },
   {
     id: 'ct-002',
@@ -52,11 +63,13 @@ export const SUCURSALES_CRISPY_TENDERS: Sucursal[] = [
     lng: -100.3090,
     municipio: 'Monterrey',
     status: 'operando',
+    coordenadasVerificadas: false,
+    fuenteCoordenadas: 'estimada',
     ticketPromedio: 180,
     horarioApertura: '10:00',
     horarioCierre: '20:00',
     diasOperacion: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
-    notas: 'Zona centro, alto tráfico peatonal'
+    notas: 'Zona centro, alto tráfico peatonal. COORDENADAS REQUIEREN VERIFICACIÓN.'
   },
   {
     id: 'ct-003',
@@ -67,11 +80,13 @@ export const SUCURSALES_CRISPY_TENDERS: Sucursal[] = [
     lng: -100.3152,
     municipio: 'Monterrey',
     status: 'operando',
+    coordenadasVerificadas: false,
+    fuenteCoordenadas: 'estimada',
     ticketPromedio: 175,
     horarioApertura: '10:00',
     horarioCierre: '19:00',
     diasOperacion: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
-    notas: 'Centro histórico, artesanías, cerca de Metrorrey L2/L3'
+    notas: 'Centro histórico, artesanías, cerca de Metrorrey L2/L3. COORDENADAS REQUIEREN VERIFICACIÓN.'
   },
   {
     id: 'ct-004',
@@ -82,11 +97,13 @@ export const SUCURSALES_CRISPY_TENDERS: Sucursal[] = [
     lng: -100.3456,
     municipio: 'Monterrey',
     status: 'operando',
+    coordenadasVerificadas: false,
+    fuenteCoordenadas: 'estimada',
     ticketPromedio: 190,
     horarioApertura: '10:00',
     horarioCierre: '21:00',
     diasOperacion: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
-    notas: 'HEB, Office Max, Cinemark, estacionamiento gratis'
+    notas: 'HEB, Office Max, Cinemark, estacionamiento gratis. COORDENADAS REQUIEREN VERIFICACIÓN.'
   },
   {
     id: 'ct-005',
@@ -97,11 +114,13 @@ export const SUCURSALES_CRISPY_TENDERS: Sucursal[] = [
     lng: -100.2785,
     municipio: 'Monterrey',
     status: 'operando',
+    coordenadasVerificadas: false,
+    fuenteCoordenadas: 'estimada',
     ticketPromedio: 210,
     horarioApertura: '11:00',
     horarioCierre: '21:00',
     diasOperacion: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
-    notas: 'Plaza certificación LEED Silver, Sears nueva generación, Cinépolis'
+    notas: 'Plaza certificación LEED Silver, Sears nueva generación, Cinépolis. COORDENADAS REQUIEREN VERIFICACIÓN.'
   },
   {
     id: 'ct-006',
@@ -112,11 +131,13 @@ export const SUCURSALES_CRISPY_TENDERS: Sucursal[] = [
     lng: -100.3380,
     municipio: 'Monterrey',
     status: 'operando',
+    coordenadasVerificadas: false,
+    fuenteCoordenadas: 'estimada',
     ticketPromedio: 185,
     horarioApertura: '14:00',
     horarioCierre: '22:00',
     diasOperacion: ['Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
-    notas: 'Local independiente, horario vespertino'
+    notas: 'Local independiente, horario vespertino. COORDENADAS REQUIEREN VERIFICACIÓN.'
   },
   {
     id: 'ct-007',
@@ -127,11 +148,13 @@ export const SUCURSALES_CRISPY_TENDERS: Sucursal[] = [
     lng: -100.3132,
     municipio: 'Monterrey',
     status: 'operando',
+    coordenadasVerificadas: false,
+    fuenteCoordenadas: 'estimada',
     ticketPromedio: 175,
     horarioApertura: '10:30',
     horarioCierre: '19:30',
     diasOperacion: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'],
-    notas: 'Centro histórico, delivery Rappi/UberEats'
+    notas: 'Centro histórico, delivery Rappi/UberEats. COORDENADAS REQUIEREN VERIFICACIÓN.'
   },
   {
     id: 'ct-008',
@@ -142,11 +165,13 @@ export const SUCURSALES_CRISPY_TENDERS: Sucursal[] = [
     lng: -100.184647,
     municipio: 'Guadalupe',
     status: 'operando',
+    coordenadasVerificadas: false,
+    fuenteCoordenadas: 'estimada',
     ticketPromedio: 190,
     horarioApertura: '10:00',
     horarioCierre: '20:00',
     diasOperacion: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
-    notas: 'Plaza Sun Mall, zona oriente Guadalupe, cerca de KFC Plaza Sun Mall'
+    notas: 'Plaza Sun Mall, zona oriente Guadalupe. COORDENADAS REQUIEREN VERIFICACIÓN.'
   },
 
   // Próximamente
@@ -159,11 +184,13 @@ export const SUCURSALES_CRISPY_TENDERS: Sucursal[] = [
     lng: -100.2589,
     municipio: 'San Nicolás de los Garza',
     status: 'proximamente',
+    coordenadasVerificadas: false,
+    fuenteCoordenadas: 'estimada',
     ticketPromedio: 200,
     horarioApertura: '11:00',
     horarioCierre: '21:00',
     diasOperacion: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
-    notas: 'Lifestyle mall, Liverpool, H&M, Coppel, Cinépolis. Apertura próxima.'
+    notas: 'Lifestyle mall, Liverpool, H&M, Coppel, Cinépolis. Apertura próxima. COORDENADAS REQUIEREN VERIFICACIÓN.'
   },
 
   // Propuestas
@@ -176,12 +203,14 @@ export const SUCURSALES_CRISPY_TENDERS: Sucursal[] = [
     lng: -100.2005,
     municipio: 'Guadalupe',
     status: 'propuesta',
+    coordenadasVerificadas: false,
+    fuenteCoordenadas: 'estimada',
     ticketPromedio: 195,
     inversionInicial: 800000,
     horarioApertura: '10:00',
     horarioCierre: '21:00',
     diasOperacion: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
-    notas: 'PROPUESTA DE ANÁLISIS - Cerca de Plaza Platino y Parque Deportivo Benito Juárez'
+    notas: 'PROPUESTA DE ANÁLISIS - Cerca de Plaza Platino y Parque Deportivo Benito Juárez. COORDENADAS REQUIEREN VERIFICACIÓN.'
   },
   {
     id: 'ct-011',
@@ -192,12 +221,14 @@ export const SUCURSALES_CRISPY_TENDERS: Sucursal[] = [
     lng: -100.3010,
     municipio: 'San Nicolás de los Garza',
     status: 'propuesta',
+    coordenadasVerificadas: false,
+    fuenteCoordenadas: 'estimada',
     ticketPromedio: 185,
     inversionInicial: 750000,
     horarioApertura: '10:00',
     horarioCierre: '21:00',
     diasOperacion: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
-    notas: 'PROPUESTA - Zona universitaria, alto flujo estudiantil. Ideal para fast food. Conecta con Apodaca, Escobedo y Monterrey.'
+    notas: 'PROPUESTA - Zona universitaria, alto flujo estudiantil. COORDENADAS REQUIEREN VERIFICACIÓN.'
   },
   {
     id: 'ct-012',
@@ -208,12 +239,14 @@ export const SUCURSALES_CRISPY_TENDERS: Sucursal[] = [
     lng: -100.4412,
     municipio: 'Monterrey',
     status: 'propuesta',
-    ticketPromedio: 210, // Zona de mayor poder adquisitivo
-    inversionInicial: 850000, // Plaza nueva = mayor inversión
+    coordenadasVerificadas: false,
+    fuenteCoordenadas: 'estimada',
+    ticketPromedio: 210,
+    inversionInicial: 850000,
     horarioApertura: '10:00',
     horarioCierre: '21:00',
     diasOperacion: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
-    notas: 'PROPUESTA - Plaza nueva Feb 2025. Food Court climatizado. Zona Cumbres NSE B. VENTAJA: Ser primeros en entrar a plaza nueva.'
+    notas: 'PROPUESTA - Plaza nueva Feb 2025. Food Court climatizado. Zona Cumbres NSE B. COORDENADAS REQUIEREN VERIFICACIÓN.'
   }
 ];
 

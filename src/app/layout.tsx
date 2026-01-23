@@ -45,23 +45,20 @@ export default function RootLayout({
                   <a href="/descubrir" className="hover:text-crispy-200 transition font-medium">
                     🎯 Descubrir
                   </a>
+                  <a href="/comparar" className="hover:text-crispy-200 transition font-medium">
+                    ⚖️ Comparar
+                  </a>
                   <a href="/dashboard-ejecutivo" className="hover:text-crispy-200 transition font-medium">
                     📊 Ejecutivo
                   </a>
-                  <a href="/buscar-plazas" className="hover:text-crispy-200 transition font-medium">
-                    🔍 Buscar
-                  </a>
-                  <a href="/mapa-trafico" className="hover:text-crispy-200 transition font-medium">
-                    🚗 Tráfico
-                  </a>
-                  <a href="/analisis" className="hover:text-crispy-200 transition font-medium">
-                    Análisis
-                  </a>
                   <a href="/competencia" className="hover:text-crispy-200 transition font-medium">
-                    Competencia
+                    🎯 Competencia
                   </a>
                   <a href="/sucursales" className="hover:text-crispy-200 transition font-medium">
-                    Sucursales
+                    🏪 Sucursales
+                  </a>
+                  <a href="/configuracion" className="hover:text-crispy-200 transition font-medium">
+                    ⚙️ Config
                   </a>
                 </nav>
               </div>
