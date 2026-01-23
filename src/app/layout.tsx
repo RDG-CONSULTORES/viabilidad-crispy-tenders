@@ -42,6 +42,9 @@ export default function RootLayout({
                   <a href="/" className="hover:text-crispy-200 transition font-medium">
                     Inicio
                   </a>
+                  <a href="/descubrir" className="hover:text-crispy-200 transition font-medium">
+                    🎯 Descubrir
+                  </a>
                   <a href="/dashboard-ejecutivo" className="hover:text-crispy-200 transition font-medium">
                     📊 Ejecutivo
                   </a>
