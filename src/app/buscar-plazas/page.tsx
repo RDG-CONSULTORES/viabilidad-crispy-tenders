@@ -43,6 +43,17 @@ interface PlazaResult {
     horasPico: { inicio: number; fin: number; intensidad: number }[];
     score: number;
   };
+  densidadComercial?: {
+    nivel: string;
+    color: string;
+    servicios: {
+      bancos: number;
+      supermercados: number;
+      farmacias: number;
+      restaurantes: number;
+      total: number;
+    };
+  };
   score: number;
   clasificacion: 'EXCELENTE' | 'BUENA' | 'EVALUAR' | 'RIESGOSA';
   factoresPositivos: string[];
@@ -507,6 +518,39 @@ export default function BuscarPlazasPage() {
                       <div className="flex justify-between">
                         <span className="text-gray-500">Más cercano a:</span>
                         <span className="font-medium">{plazaSeleccionada.competencia.competidorMasCercanoKm} km</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Densidad Comercial */}
+                {plazaSeleccionada.densidadComercial && (
+                  <div className="bg-white rounded-lg shadow-md p-4">
+                    <h3 className="font-semibold text-gray-700 mb-3">🏪 Densidad Comercial</h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-500">Nivel:</span>
+                        <span className="font-medium px-2 py-1 rounded" style={{ backgroundColor: `${plazaSeleccionada.densidadComercial.color}20`, color: plazaSeleccionada.densidadComercial.color }}>
+                          {plazaSeleccionada.densidadComercial.nivel}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Total servicios:</span>
+                        <span className="font-medium">{plazaSeleccionada.densidadComercial.servicios.total}</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 mt-2 p-2 bg-gray-50 rounded">
+                        <div className="text-xs">
+                          <span className="text-gray-500">Bancos:</span> {plazaSeleccionada.densidadComercial.servicios.bancos}
+                        </div>
+                        <div className="text-xs">
+                          <span className="text-gray-500">Supermercados:</span> {plazaSeleccionada.densidadComercial.servicios.supermercados}
+                        </div>
+                        <div className="text-xs">
+                          <span className="text-gray-500">Farmacias:</span> {plazaSeleccionada.densidadComercial.servicios.farmacias}
+                        </div>
+                        <div className="text-xs">
+                          <span className="text-gray-500">Restaurantes:</span> {plazaSeleccionada.densidadComercial.servicios.restaurantes}
+                        </div>
                       </div>
                     </div>
                   </div>

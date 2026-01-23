@@ -4,6 +4,7 @@ import { analizarAccesibilidad } from '@/lib/mapbox';
 import { obtenerRiesgoMunicipio, MUNICIPIOS_AMM } from '@/lib/apis-gobierno';
 import { obtenerFlujoTrafico, HERETrafficFlow } from '@/lib/here';
 import { analizarAfluenciaPlaza, calcularScoreAfluencia, getNivelAfluencia, AfluenciaData } from '@/lib/besttime';
+import { analizarServiciosArea, getDensidadInfo } from '@/lib/foursquare';
 
 /**
  * GET /api/buscar-plazas
@@ -75,6 +76,19 @@ interface PlazaEnriquecida {
     peorDia: string;
     horasPico: { inicio: number; fin: number; intensidad: number }[];
     score: number;
+  };
+
+  // Densidad Comercial (Foursquare)
+  densidadComercial?: {
+    nivel: string;
+    color: string;
+    servicios: {
+      bancos: number;
+      supermercados: number;
+      farmacias: number;
+      restaurantes: number;
+      total: number;
+    };
   };
 
   // Scoring
@@ -355,7 +369,40 @@ async function enriquecerPlaza(plaza: PlaceResult): Promise<PlazaEnriquecida> {
     console.error('Error obteniendo afluencia:', e);
   }
 
-  // 6. Scoring por rating de la plaza
+  // 6. Obtener densidad comercial del área (Foursquare)
+  let densidadComercial: PlazaEnriquecida['densidadComercial'];
+  try {
+    const serviciosData = await analizarServiciosArea(plaza.lat, plaza.lng, 1000);
+    const densidadInfo = getDensidadInfo(serviciosData.densidadComercial);
+
+    densidadComercial = {
+      nivel: densidadInfo.texto,
+      color: densidadInfo.color,
+      servicios: {
+        bancos: serviciosData.bancos,
+        supermercados: serviciosData.supermercados,
+        farmacias: serviciosData.farmacias,
+        restaurantes: serviciosData.restaurantes,
+        total: serviciosData.total,
+      },
+    };
+
+    // Scoring por densidad comercial
+    if (serviciosData.densidadComercial === 'muy_alta') {
+      score += 10;
+      factoresPositivos.push(`Zona con muy alta densidad comercial (${serviciosData.total} servicios)`);
+    } else if (serviciosData.densidadComercial === 'alta') {
+      score += 5;
+      factoresPositivos.push(`Buena densidad comercial (${serviciosData.total} servicios)`);
+    } else if (serviciosData.densidadComercial === 'baja') {
+      score -= 5;
+      factoresNegativos.push(`Baja densidad comercial en la zona`);
+    }
+  } catch (e) {
+    console.error('Error obteniendo densidad comercial:', e);
+  }
+
+  // 7. Scoring por rating de la plaza
   if (plaza.rating) {
     if (plaza.rating >= 4.5) {
       score += 10;
@@ -368,7 +415,7 @@ async function enriquecerPlaza(plaza: PlaceResult): Promise<PlazaEnriquecida> {
     }
   }
 
-  // 7. Scoring por reviews (indicador de tráfico)
+  // 8. Scoring por reviews (indicador de tráfico)
   if (plaza.totalReviews) {
     if (plaza.totalReviews > 1000) {
       score += 10;
@@ -410,6 +457,7 @@ async function enriquecerPlaza(plaza: PlaceResult): Promise<PlazaEnriquecida> {
     riesgo,
     trafico,
     afluencia,
+    densidadComercial,
     score,
     clasificacion,
     factoresPositivos,
