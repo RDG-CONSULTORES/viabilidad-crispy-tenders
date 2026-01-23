@@ -19,6 +19,15 @@ interface Oportunidad {
   sucursalCTMasCercana: string;
   distanciaKFCMasCercano: number;
   competidoresEn2km: number;
+  volumenPeatonal: {
+    estimado: number;
+    nivel: string;
+    color: string;
+    fuente: 'besttime' | 'estimado';
+    promedioSemanal?: number;
+    mejorDia?: string;
+    horasPico?: string;
+  };
   scoreViabilidad: number;
   clasificacion: 'EXCELENTE' | 'BUENA' | 'EVALUAR' | 'RIESGOSA';
   factoresPositivos: string[];
@@ -264,6 +273,9 @@ export default function DescubrirPage() {
                           <span className="px-2 py-0.5 rounded text-xs text-white" style={{ background: oportunidad.nseColor }}>
                             NSE {oportunidad.nseEstimado}
                           </span>
+                          <span className="px-2 py-0.5 rounded text-xs text-white" style={{ background: oportunidad.volumenPeatonal.color }}>
+                            🚶 {oportunidad.volumenPeatonal.estimado}%
+                          </span>
                           <span className="text-gray-500">{oportunidad.municipio}</span>
                           {oportunidad.rating && (
                             <span className="flex items-center gap-1">
@@ -352,6 +364,41 @@ export default function DescubrirPage() {
                         </div>
                       )}
                     </div>
+                  </div>
+
+                  {/* Volumen Peatonal */}
+                  <div className="bg-white rounded-lg shadow-md p-4">
+                    <h3 className="font-semibold text-gray-700 mb-3">🚶 Volumen Peatonal</h3>
+                    <div className="flex items-center gap-3 mb-3">
+                      <div
+                        className="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-lg"
+                        style={{ backgroundColor: oportunidadSeleccionada.volumenPeatonal.color }}
+                      >
+                        {oportunidadSeleccionada.volumenPeatonal.estimado}%
+                      </div>
+                      <div>
+                        <div className="font-medium" style={{ color: oportunidadSeleccionada.volumenPeatonal.color }}>
+                          {oportunidadSeleccionada.volumenPeatonal.nivel}
+                        </div>
+                        <div className="text-xs text-gray-400">
+                          Fuente: {oportunidadSeleccionada.volumenPeatonal.fuente === 'besttime' ? 'BestTime API' : 'Estimado'}
+                        </div>
+                      </div>
+                    </div>
+                    {oportunidadSeleccionada.volumenPeatonal.mejorDia && (
+                      <div className="text-sm space-y-1 border-t pt-2">
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Mejor día:</span>
+                          <span className="font-medium">{oportunidadSeleccionada.volumenPeatonal.mejorDia}</span>
+                        </div>
+                        {oportunidadSeleccionada.volumenPeatonal.horasPico && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-500">Horas pico:</span>
+                            <span className="font-medium text-xs">{oportunidadSeleccionada.volumenPeatonal.horasPico}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Distancias */}

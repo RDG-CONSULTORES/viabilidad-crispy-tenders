@@ -4,6 +4,7 @@ import { obtenerRiesgoMunicipio, MUNICIPIOS_AMM } from '@/lib/apis-gobierno';
 import { obtenerMunicipioIdPorCoordenadas, obtenerIndicadoresEconomicos, getNivelEconomicoInfo } from '@/lib/datamexico';
 import { SUCURSALES_CRISPY_TENDERS } from '@/data/sucursales';
 import { COMPETIDORES_MTY, calcularDistanciaKm } from '@/data/competencia';
+import { analizarAfluenciaPlaza, AfluenciaData, getNivelAfluencia } from '@/lib/besttime';
 
 /**
  * API Route para Descubrimiento de Oportunidades
@@ -78,6 +79,17 @@ interface OportunidadDescubierta {
   sucursalCTMasCercana: string;
   distanciaKFCMasCercano: number;
   competidoresEn2km: number;
+
+  // Volumen Peatonal
+  volumenPeatonal: {
+    estimado: number; // 0-100
+    nivel: string;
+    color: string;
+    fuente: 'besttime' | 'estimado';
+    promedioSemanal?: number;
+    mejorDia?: string;
+    horasPico?: string;
+  };
 
   // Scoring
   scoreViabilidad: number;
@@ -171,6 +183,9 @@ export async function GET(request: NextRequest) {
           continue;
         }
 
+        // Estimar volumen peatonal (rápido, sin API externa)
+        const volumenPeatonal = estimarVolumenPeatonal(plaza.rating, plaza.totalReviews, nseEstimado);
+
         // Calcular score de viabilidad
         const { score, clasificacion, factoresPositivos, factoresNegativos } = calcularScoreOportunidad({
           rating: plaza.rating,
@@ -179,6 +194,7 @@ export async function GET(request: NextRequest) {
           distanciaKFC: distanciaKFCMin,
           competidoresEn2km,
           nse: nseEstimado,
+          volumenPeatonal: volumenPeatonal.estimado,
         });
 
         todasLasOportunidades.push({
@@ -197,6 +213,7 @@ export async function GET(request: NextRequest) {
           sucursalCTMasCercana: sucursalCTCercana,
           distanciaKFCMasCercano: Math.round(distanciaKFCMin * 100) / 100,
           competidoresEn2km,
+          volumenPeatonal,
           scoreViabilidad: score,
           clasificacion,
           factoresPositivos,
@@ -255,6 +272,93 @@ export async function GET(request: NextRequest) {
 }
 
 /**
+ * Estima el volumen peatonal basado en datos de Google Places
+ */
+function estimarVolumenPeatonal(rating?: number, totalReviews?: number, nse?: string): {
+  estimado: number;
+  nivel: string;
+  color: string;
+  fuente: 'besttime' | 'estimado';
+} {
+  let estimado = 50; // Base
+
+  // Reviews como proxy de tráfico (principal indicador)
+  if (totalReviews) {
+    if (totalReviews > 5000) estimado += 30;
+    else if (totalReviews > 2000) estimado += 25;
+    else if (totalReviews > 1000) estimado += 20;
+    else if (totalReviews > 500) estimado += 15;
+    else if (totalReviews > 200) estimado += 10;
+    else if (totalReviews < 50) estimado -= 15;
+    else if (totalReviews < 100) estimado -= 10;
+  }
+
+  // Rating como indicador de calidad/atracción
+  if (rating) {
+    if (rating >= 4.5) estimado += 10;
+    else if (rating >= 4.0) estimado += 5;
+    else if (rating < 3.5) estimado -= 10;
+  }
+
+  // NSE afecta capacidad de gasto pero no necesariamente tráfico
+  if (nse === 'A' || nse === 'B') estimado += 5;
+
+  // Normalizar
+  estimado = Math.max(0, Math.min(100, estimado));
+
+  // Determinar nivel
+  const nivelInfo = getNivelAfluencia(estimado);
+
+  return {
+    estimado,
+    nivel: nivelInfo.texto,
+    color: nivelInfo.color,
+    fuente: 'estimado',
+  };
+}
+
+/**
+ * Obtiene datos reales de BestTime (más lento, usa créditos API)
+ */
+async function obtenerVolumenPeatonalReal(
+  nombre: string,
+  direccion: string
+): Promise<{
+  estimado: number;
+  nivel: string;
+  color: string;
+  fuente: 'besttime' | 'estimado';
+  promedioSemanal?: number;
+  mejorDia?: string;
+  horasPico?: string;
+} | null> {
+  try {
+    const afluencia = await analizarAfluenciaPlaza(nombre, direccion);
+    if (!afluencia) return null;
+
+    const nivelInfo = getNivelAfluencia(afluencia.promedioSemanal);
+
+    // Formatear horas pico
+    const horasPicoStr = afluencia.horasPico.length > 0
+      ? afluencia.horasPico.slice(0, 3).map(h => `${h.inicio}:00-${h.fin}:00`).join(', ')
+      : 'No disponible';
+
+    return {
+      estimado: afluencia.promedioSemanal,
+      nivel: nivelInfo.texto,
+      color: nivelInfo.color,
+      fuente: 'besttime',
+      promedioSemanal: afluencia.promedioSemanal,
+      mejorDia: afluencia.mejorDia,
+      horasPico: horasPicoStr,
+    };
+  } catch (error) {
+    console.error('Error obteniendo datos BestTime:', error);
+    return null;
+  }
+}
+
+/**
  * Calcula el score de viabilidad para una oportunidad
  */
 function calcularScoreOportunidad(params: {
@@ -264,24 +368,39 @@ function calcularScoreOportunidad(params: {
   distanciaKFC: number;
   competidoresEn2km: number;
   nse: string;
+  volumenPeatonal: number;
 }): {
   score: number;
   clasificacion: 'EXCELENTE' | 'BUENA' | 'EVALUAR' | 'RIESGOSA';
   factoresPositivos: string[];
   factoresNegativos: string[];
 } {
-  let score = 50;
+  let score = 40; // Base reducido para dar más peso a otros factores
   const factoresPositivos: string[] = [];
   const factoresNegativos: string[] = [];
 
-  // NSE (25 puntos)
-  const nseScores: Record<string, number> = { 'A': 25, 'B': 20, 'C+': 15, 'C': 10, 'D': 0 };
-  const nseScore = nseScores[params.nse] || 10;
+  // NSE (20 puntos)
+  const nseScores: Record<string, number> = { 'A': 20, 'B': 16, 'C+': 12, 'C': 8, 'D': 0 };
+  const nseScore = nseScores[params.nse] || 8;
   score += nseScore;
-  if (nseScore >= 20) {
+  if (nseScore >= 16) {
     factoresPositivos.push(`Zona NSE ${params.nse} - alto poder adquisitivo`);
-  } else if (nseScore <= 10) {
+  } else if (nseScore <= 8) {
     factoresNegativos.push(`Zona NSE ${params.nse} - menor poder adquisitivo`);
+  }
+
+  // Volumen Peatonal (15 puntos) - NUEVO FACTOR PRINCIPAL
+  if (params.volumenPeatonal >= 70) {
+    score += 15;
+    factoresPositivos.push(`Alto volumen peatonal (${params.volumenPeatonal}%)`);
+  } else if (params.volumenPeatonal >= 50) {
+    score += 10;
+    factoresPositivos.push(`Buen volumen peatonal (${params.volumenPeatonal}%)`);
+  } else if (params.volumenPeatonal >= 30) {
+    score += 5;
+  } else {
+    score -= 5;
+    factoresNegativos.push(`Bajo volumen peatonal (${params.volumenPeatonal}%)`);
   }
 
   // Distancia a Crispy Tenders existente (15 puntos)
@@ -295,18 +414,18 @@ function calcularScoreOportunidad(params: {
     score += 5;
   }
 
-  // Distancia a KFC (15 puntos)
+  // Distancia a KFC (10 puntos)
   if (params.distanciaKFC > 2) {
-    score += 15;
+    score += 10;
     factoresPositivos.push(`Sin KFC en 2km`);
   } else if (params.distanciaKFC > 1) {
-    score += 10;
+    score += 7;
     factoresPositivos.push(`KFC a ${params.distanciaKFC.toFixed(1)}km`);
   } else if (params.distanciaKFC > 0.5) {
-    score += 5;
+    score += 3;
     factoresNegativos.push(`KFC cercano (${(params.distanciaKFC * 1000).toFixed(0)}m)`);
   } else {
-    score -= 10;
+    score -= 5;
     factoresNegativos.push(`KFC muy cercano (${(params.distanciaKFC * 1000).toFixed(0)}m)`);
   }
 
@@ -317,7 +436,7 @@ function calcularScoreOportunidad(params: {
   } else if (params.competidoresEn2km <= 2) {
     score += 5;
   } else if (params.competidoresEn2km > 4) {
-    score -= 10;
+    score -= 5;
     factoresNegativos.push(`Zona saturada (${params.competidoresEn2km} competidores)`);
   }
 
@@ -330,15 +449,6 @@ function calcularScoreOportunidad(params: {
   } else if (params.rating && params.rating < 3.5) {
     score -= 5;
     factoresNegativos.push(`Plaza con rating bajo (${params.rating}★)`);
-  }
-
-  // Reviews como indicador de tráfico (5 puntos)
-  if (params.totalReviews && params.totalReviews > 1000) {
-    score += 5;
-    factoresPositivos.push(`Alto tráfico (${params.totalReviews} reviews)`);
-  } else if (params.totalReviews && params.totalReviews < 100) {
-    score -= 5;
-    factoresNegativos.push(`Bajo tráfico estimado`);
   }
 
   // Normalizar
