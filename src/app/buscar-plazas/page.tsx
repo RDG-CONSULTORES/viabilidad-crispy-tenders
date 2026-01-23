@@ -89,14 +89,36 @@ interface BusquedaResponse {
 }
 
 const ZONAS_MONTERREY = [
-  { nombre: 'Centro Monterrey', lat: 25.6866, lng: -100.3161 },
-  { nombre: 'San Pedro Garza García', lat: 25.6574, lng: -100.4023 },
-  { nombre: 'Santa Catarina', lat: 25.6733, lng: -100.4584 },
-  { nombre: 'Guadalupe', lat: 25.6772, lng: -100.2557 },
-  { nombre: 'San Nicolás', lat: 25.7441, lng: -100.2836 },
-  { nombre: 'Apodaca', lat: 25.7815, lng: -100.1836 },
-  { nombre: 'Escobedo', lat: 25.7981, lng: -100.3401 },
-  { nombre: 'Cumbres', lat: 25.7500, lng: -100.4400 },
+  // === ZONAS DE ALTO POTENCIAL (NSE A/B) ===
+  { nombre: '⭐ San Pedro Centro', lat: 25.6574, lng: -100.4023, nse: 'A' },
+  { nombre: '⭐ Valle Oriente', lat: 25.6489, lng: -100.3693, nse: 'A' },
+  { nombre: '⭐ Del Valle', lat: 25.6523, lng: -100.3356, nse: 'A' },
+  { nombre: '⭐ Cumbres Elite', lat: 25.7350, lng: -100.4450, nse: 'A/B' },
+  { nombre: '⭐ Carretera Nacional', lat: 25.6150, lng: -100.2850, nse: 'A/B' },
+
+  // === ZONAS CLASE MEDIA-ALTA (NSE B/C+) ===
+  { nombre: 'Cumbres', lat: 25.7500, lng: -100.4400, nse: 'B' },
+  { nombre: 'Contry', lat: 25.6350, lng: -100.3150, nse: 'B' },
+  { nombre: 'Linda Vista', lat: 25.7150, lng: -100.3650, nse: 'B' },
+  { nombre: 'Anáhuac', lat: 25.7100, lng: -100.3200, nse: 'B' },
+  { nombre: 'Mitras Centro', lat: 25.6950, lng: -100.3550, nse: 'C+' },
+
+  // === ZONAS DE ALTO TRÁFICO (NSE C+/C) ===
+  { nombre: 'Centro Monterrey', lat: 25.6866, lng: -100.3161, nse: 'C+' },
+  { nombre: 'Av. Lincoln', lat: 25.7050, lng: -100.3100, nse: 'C+' },
+  { nombre: 'Av. Universidad', lat: 25.7300, lng: -100.3000, nse: 'C+' },
+  { nombre: 'Gonzalitos', lat: 25.6800, lng: -100.3450, nse: 'C+' },
+
+  // === ZONAS EN CRECIMIENTO ===
+  { nombre: 'San Nicolás Norte', lat: 25.7600, lng: -100.2700, nse: 'C+' },
+  { nombre: 'San Nicolás', lat: 25.7441, lng: -100.2836, nse: 'C+' },
+  { nombre: 'Guadalupe Centro', lat: 25.6772, lng: -100.2557, nse: 'C+' },
+  { nombre: 'Guadalupe Oriente', lat: 25.6900, lng: -100.2100, nse: 'C' },
+  { nombre: 'Apodaca', lat: 25.7815, lng: -100.1836, nse: 'C' },
+  { nombre: 'Escobedo', lat: 25.7981, lng: -100.3401, nse: 'C' },
+  { nombre: 'Santa Catarina', lat: 25.6733, lng: -100.4584, nse: 'C' },
+  { nombre: 'García', lat: 25.8078, lng: -100.5186, nse: 'C' },
+  { nombre: 'Juárez', lat: 25.6472, lng: -100.0944, nse: 'C' },
 ];
 
 export default function BuscarPlazasPage() {

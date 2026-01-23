@@ -301,6 +301,21 @@ export default function DashboardEjecutivo() {
         </div>
       </div>
 
+      {/* Descubrir Oportunidades - Destacado */}
+      <a href="/descubrir" className="block bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-6 rounded-lg hover:from-purple-700 hover:to-indigo-700 transition shadow-lg">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-3xl mb-2">🚀</div>
+            <div className="text-xl font-bold">Descubrir Oportunidades</div>
+            <div className="text-purple-200">Escanea todo el AMM y encuentra las mejores plazas automáticamente</div>
+          </div>
+          <div className="text-right">
+            <div className="text-4xl font-bold">22</div>
+            <div className="text-purple-200">zonas a escanear</div>
+          </div>
+        </div>
+      </a>
+
       {/* Acciones Rápidas */}
       <div className="grid grid-cols-4 gap-4">
         <a href="/buscar-plazas" className="bg-crispy-500 text-white p-4 rounded-lg hover:bg-crispy-600 transition text-center">
