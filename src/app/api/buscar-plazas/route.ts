@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { buscarLugaresCercanos, buscarCompetidoresPollo, PlaceResult } from '@/lib/google-places';
 import { analizarAccesibilidad } from '@/lib/mapbox';
 import { obtenerRiesgoMunicipio, MUNICIPIOS_AMM } from '@/lib/apis-gobierno';
+import { obtenerFlujoTrafico, HERETrafficFlow } from '@/lib/here';
 
 /**
  * GET /api/buscar-plazas
@@ -53,6 +54,15 @@ interface PlazaEnriquecida {
   riesgo?: {
     inundacion: number;
     nivel: string;
+  };
+
+  // Tráfico (HERE)
+  trafico?: {
+    jamFactor: number;
+    velocidadActualKmh: number;
+    velocidadLibreKmh: number;
+    nivel: 'fluido' | 'lento' | 'congestionado' | 'detenido';
+    impactoDelivery: string;
   };
 
   // Scoring
@@ -255,7 +265,49 @@ async function enriquecerPlaza(plaza: PlaceResult): Promise<PlazaEnriquecida> {
     }
   }
 
-  // 4. Scoring por rating de la plaza
+  // 4. Obtener tráfico en tiempo real (HERE)
+  let trafico: PlazaEnriquecida['trafico'];
+  try {
+    const flujoData = await obtenerFlujoTrafico(plaza.lat, plaza.lng);
+    if (flujoData) {
+      let impactoDelivery: string;
+      if (flujoData.nivel === 'fluido') {
+        impactoDelivery = 'Ideal para entregas rápidas';
+      } else if (flujoData.nivel === 'lento') {
+        impactoDelivery = 'Entregas con tiempos moderados';
+      } else if (flujoData.nivel === 'congestionado') {
+        impactoDelivery = 'Considerar tiempos extendidos';
+      } else {
+        impactoDelivery = 'Alto impacto en tiempos de entrega';
+      }
+
+      trafico = {
+        jamFactor: flujoData.jamFactor,
+        velocidadActualKmh: flujoData.velocidadActualKmh,
+        velocidadLibreKmh: flujoData.velocidadLibreKmh,
+        nivel: flujoData.nivel,
+        impactoDelivery
+      };
+
+      // Scoring por tráfico
+      if (flujoData.nivel === 'fluido') {
+        score += 10;
+        factoresPositivos.push('Tráfico fluido en la zona');
+      } else if (flujoData.nivel === 'lento') {
+        score += 5;
+      } else if (flujoData.nivel === 'congestionado') {
+        score -= 5;
+        factoresNegativos.push('Zona con congestión frecuente');
+      } else {
+        score -= 10;
+        factoresNegativos.push('Tráfico muy congestionado');
+      }
+    }
+  } catch (e) {
+    console.error('Error obteniendo tráfico:', e);
+  }
+
+  // 5. Scoring por rating de la plaza
   if (plaza.rating) {
     if (plaza.rating >= 4.5) {
       score += 10;
@@ -268,7 +320,7 @@ async function enriquecerPlaza(plaza: PlaceResult): Promise<PlazaEnriquecida> {
     }
   }
 
-  // 5. Scoring por reviews (indicador de tráfico)
+  // 6. Scoring por reviews (indicador de tráfico)
   if (plaza.totalReviews) {
     if (plaza.totalReviews > 1000) {
       score += 10;
@@ -308,6 +360,7 @@ async function enriquecerPlaza(plaza: PlaceResult): Promise<PlazaEnriquecida> {
     accesibilidad,
     competencia,
     riesgo,
+    trafico,
     score,
     clasificacion,
     factoresPositivos,

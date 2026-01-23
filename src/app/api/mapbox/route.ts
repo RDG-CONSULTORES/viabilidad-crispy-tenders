@@ -144,9 +144,9 @@ export async function GET(request: NextRequest) {
         }
 
         return NextResponse.json({
+          ...resultado,
           success: true,
-          tipo: 'reverse_geocoding',
-          ...resultado
+          tipo: 'reverse_geocoding'
         });
       }
 

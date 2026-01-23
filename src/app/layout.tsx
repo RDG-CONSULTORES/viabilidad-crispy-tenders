@@ -38,12 +38,18 @@ export default function RootLayout({
                   </div>
                 </div>
 
-                <nav className="flex gap-6">
+                <nav className="flex gap-4 text-sm">
                   <a href="/" className="hover:text-crispy-200 transition font-medium">
-                    Dashboard
+                    Inicio
                   </a>
-                  <a href="/sucursales" className="hover:text-crispy-200 transition font-medium">
-                    Sucursales
+                  <a href="/dashboard-ejecutivo" className="hover:text-crispy-200 transition font-medium">
+                    📊 Ejecutivo
+                  </a>
+                  <a href="/buscar-plazas" className="hover:text-crispy-200 transition font-medium">
+                    🔍 Buscar
+                  </a>
+                  <a href="/mapa-trafico" className="hover:text-crispy-200 transition font-medium">
+                    🚗 Tráfico
                   </a>
                   <a href="/analisis" className="hover:text-crispy-200 transition font-medium">
                     Análisis
@@ -51,8 +57,8 @@ export default function RootLayout({
                   <a href="/competencia" className="hover:text-crispy-200 transition font-medium">
                     Competencia
                   </a>
-                  <a href="/configuracion" className="hover:text-crispy-200 transition font-medium">
-                    ⚙️ Config
+                  <a href="/sucursales" className="hover:text-crispy-200 transition font-medium">
+                    Sucursales
                   </a>
                 </nav>
               </div>
