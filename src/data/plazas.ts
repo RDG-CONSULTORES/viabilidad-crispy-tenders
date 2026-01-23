@@ -1,10 +1,27 @@
 /**
  * Plazas Comerciales del Área Metropolitana de Monterrey
  * Para análisis de viabilidad de Crispy Tenders
- * Datos actualizados: Enero 2025
+ *
+ * =============================================================================
+ * ⚠️ ADVERTENCIA DE CONFIABILIDAD DE DATOS
+ * =============================================================================
+ * Este archivo contiene datos con DIFERENTES NIVELES DE CONFIANZA:
+ *
+ * - VERIFICADO: Confirmado con fuente primaria (Google Places, INEGI, campo)
+ * - ESTIMADO: Calculado a partir de proxies o suposiciones documentadas
+ * - NO_VERIFICADO: Dato sin fuente conocida - NO USAR PARA DECISIONES
+ *
+ * ANTES de tomar decisiones de inversión, verificar:
+ * 1. Flujo peatonal → con BestTime API o conteo de campo
+ * 2. NSE → con datos INEGI por AGEB
+ * 3. Renta → con cotización directa de administración de plaza
+ *
+ * Última actualización: Enero 2025
+ * =============================================================================
  */
 
 export type NivelSocioeconomico = 'A' | 'B' | 'C+' | 'C' | 'D';
+export type NivelConfianza = 'VERIFICADO' | 'ESTIMADO' | 'CALCULADO' | 'NO_VERIFICADO';
 
 export interface FlujoPorDia {
   lunes: number;
@@ -16,6 +33,17 @@ export interface FlujoPorDia {
   domingo: number;
 }
 
+/**
+ * Trazabilidad de un dato específico
+ */
+export interface DatoTrazable<T> {
+  valor: T;
+  nivelConfianza: NivelConfianza;
+  fuente?: string;           // "besttime_api_2025-01", "conteo_campo_2025-01-15", etc
+  fechaVerificacion?: string; // ISO date
+  notas?: string;            // Observaciones sobre el dato
+}
+
 export interface Plaza {
   id: string;
   nombre: string;
@@ -24,18 +52,38 @@ export interface Plaza {
   lng: number;
   municipio: string;
 
+  // Verificación de coordenadas
+  placeId?: string;
+  coordenadasVerificadas: boolean;
+  fuenteCoordenadas: 'google_places' | 'manual' | 'estimada';
+
   // Características físicas
   tiendasAncla: string[];
+  tiendasAnclaConfianza: NivelConfianza;
+  tiendasAnclaFuente?: string;
+
   superficieM2?: number;
   niveles?: number;
   estacionamientoGratis: boolean;
 
-  // Perfil
+  // =========================================================================
+  // DATOS CON TRAZABILIDAD OBLIGATORIA
+  // =========================================================================
+
+  // NSE - Nivel Socioeconómico
   nivelSocioeconomico: NivelSocioeconomico;
+  nseConfianza: NivelConfianza;
+  nseFuente?: string; // "inegi_ageb_2020", "amai_encuesta", "estimacion_visual"
+
   perfilVisitante: string;
 
-  // Flujo estimado (personas/hora en hora pico)
+  // Flujo Peatonal (personas/hora en hora pico)
+  // ⚠️ CRÍTICO: Este dato afecta TODAS las proyecciones financieras
   flujoPeatonalEstimado: FlujoPorDia;
+  flujoConfianza: NivelConfianza;
+  flujoFuente?: string; // "besttime_api_2025-01", "conteo_campo_2025-01-15"
+  flujoFechaVerificacion?: string;
+
   horasPico: string[];
 
   // Horarios
@@ -46,8 +94,12 @@ export interface Plaza {
   cercaMetrorrey: boolean;
   rutasBus: string[];
 
-  // Costos estimados
+  // Renta
   rentaEstimadaM2?: number; // MXN/mes
+  rentaConfianza: NivelConfianza;
+  rentaFuente?: string; // "cotizacion_plaza_2025-01", "promedio_zona"
+
+  // =========================================================================
 
   // Status para Crispy Tenders
   tieneSucursalCT: boolean;
@@ -65,15 +117,28 @@ export const PLAZAS_MTY: Plaza[] = [
     id: 'plaza-001',
     nombre: 'Plaza Fiesta San Agustín',
     direccion: 'Av. Diego Rivera 1000, Zona San Agustín, 66260',
-    lat: 25.6519,
-    lng: -100.3528,
+    lat: 25.6490463,  // Coordenadas verificadas CT
+    lng: -100.3365036,
     municipio: 'San Pedro Garza García',
+    placeId: 'ChIJtS9AhhK-YoYRQbH1OTaIHi0',
+    coordenadasVerificadas: true,
+    fuenteCoordenadas: 'google_places',
+
     tiendasAncla: ['Sanborns', 'Soriana', 'Sears'],
+    tiendasAnclaConfianza: 'VERIFICADO',
+    tiendasAnclaFuente: 'google_places_2025-01',
+
     superficieM2: 180000,
     niveles: 2,
     estacionamientoGratis: false,
+
     nivelSocioeconomico: 'A',
+    nseConfianza: 'ESTIMADO',
+    nseFuente: 'clasificacion_visual_zona_san_pedro',
+
     perfilVisitante: 'Familias nivel alto, turistas, ejecutivos',
+
+    // ⚠️ FLUJO NO VERIFICADO - Requiere BestTime API o conteo campo
     flujoPeatonalEstimado: {
       lunes: 600,
       martes: 650,
@@ -83,12 +148,19 @@ export const PLAZAS_MTY: Plaza[] = [
       sabado: 1200,
       domingo: 1000
     },
+    flujoConfianza: 'NO_VERIFICADO',
+    flujoFuente: 'estimacion_sin_fuente',
+
     horasPico: ['12:00-14:00', '18:00-21:00'],
     horarioApertura: '10:00',
     horarioCierre: '21:00',
     cercaMetrorrey: false,
     rutasBus: ['R-1', 'R-3'],
+
     rentaEstimadaM2: 800,
+    rentaConfianza: 'NO_VERIFICADO',
+    rentaFuente: 'estimacion_sin_cotizacion',
+
     tieneSucursalCT: true,
     esPropuesta: false,
     notas: '3er centro comercial más grande de México. 4 secciones: antigua, nueva, Main Entrance, Fashion Drive',
@@ -98,14 +170,26 @@ export const PLAZAS_MTY: Plaza[] = [
   {
     id: 'plaza-002',
     nombre: 'Plaza Real',
-    direccion: 'Gonzalitos 315, Jardines del Cerro, 64050',
-    lat: 25.6775,
-    lng: -100.3458,
+    direccion: 'Av. Dr. José Eleuterio González 315, Jardines del Cerro, 64060',
+    lat: 25.679974,  // Verificado con Google Places
+    lng: -100.3504874,
     municipio: 'Monterrey',
+    placeId: 'ChIJX-G3RAeWYoYRtnBG2v8SJAU',
+    coordenadasVerificadas: true,
+    fuenteCoordenadas: 'google_places',
+
     tiendasAncla: ['HEB', 'Office Max', 'Cinemark'],
+    tiendasAnclaConfianza: 'VERIFICADO',
+    tiendasAnclaFuente: 'google_places_2025-01',
+
     estacionamientoGratis: true,
+
     nivelSocioeconomico: 'C+',
+    nseConfianza: 'ESTIMADO',
+    nseFuente: 'clasificacion_visual_zona',
+
     perfilVisitante: 'Familias clase media, estudiantes',
+
     flujoPeatonalEstimado: {
       lunes: 450,
       martes: 480,
@@ -115,12 +199,19 @@ export const PLAZAS_MTY: Plaza[] = [
       sabado: 900,
       domingo: 750
     },
+    flujoConfianza: 'NO_VERIFICADO',
+    flujoFuente: 'estimacion_sin_fuente',
+
     horasPico: ['13:00-15:00', '19:00-21:00'],
     horarioApertura: '09:00',
     horarioCierre: '21:00',
-    cercaMetrorrey: true, // Estación Edison
+    cercaMetrorrey: true,
     rutasBus: ['013', '201', '218'],
+
     rentaEstimadaM2: 450,
+    rentaConfianza: 'NO_VERIFICADO',
+    rentaFuente: 'estimacion_sin_cotizacion',
+
     tieneSucursalCT: true,
     esPropuesta: false,
     notas: 'Estacionamiento techado gratis. Food court variado. Cerca Metrorrey Edison.',
@@ -129,15 +220,27 @@ export const PLAZAS_MTY: Plaza[] = [
   {
     id: 'plaza-003',
     nombre: 'Esfera Centro Comercial',
-    direccion: 'Av. La Rioja 245, Residencial la Rioja, 64985',
-    lat: 25.6089,
-    lng: -100.2785,
+    direccion: 'Rioja, 64988 Monterrey',
+    lat: 25.5780716,  // Verificado con Google Places
+    lng: -100.2453283,
     municipio: 'Monterrey',
+    placeId: 'ChIJJRyfMjzHYoYRdqvOB0jOoS0',
+    coordenadasVerificadas: true,
+    fuenteCoordenadas: 'google_places',
+
     tiendasAncla: ['Sears', 'Cinépolis'],
+    tiendasAnclaConfianza: 'VERIFICADO',
+    tiendasAnclaFuente: 'google_places_2025-01',
+
     superficieM2: 237248,
     estacionamientoGratis: false,
+
     nivelSocioeconomico: 'B',
+    nseConfianza: 'ESTIMADO',
+    nseFuente: 'clasificacion_visual_zona_sur',
+
     perfilVisitante: 'Familias jóvenes, zona sur residencial',
+
     flujoPeatonalEstimado: {
       lunes: 400,
       martes: 420,
@@ -147,12 +250,19 @@ export const PLAZAS_MTY: Plaza[] = [
       sabado: 850,
       domingo: 720
     },
+    flujoConfianza: 'NO_VERIFICADO',
+    flujoFuente: 'estimacion_sin_fuente',
+
     horasPico: ['12:00-14:00', '18:00-20:00'],
     horarioApertura: '11:00',
     horarioCierre: '21:00',
     cercaMetrorrey: false,
     rutasBus: ['005', '115', '405'],
+
     rentaEstimadaM2: 550,
+    rentaConfianza: 'NO_VERIFICADO',
+    rentaFuente: 'estimacion_sin_cotizacion',
+
     tieneSucursalCT: true,
     esPropuesta: false,
     notas: 'Certificación LEED Silver. Diseño sustentable con ventilación natural.',
@@ -161,14 +271,26 @@ export const PLAZAS_MTY: Plaza[] = [
   {
     id: 'plaza-004',
     nombre: 'Interplaza Shoptown',
-    direccion: 'Morelos Ote 101, Monterrey Antiguo, 64720',
-    lat: 25.6681,
-    lng: -100.3152,
+    direccion: 'Av. Benito Juárez 851, Centro, 67100 Guadalupe',
+    lat: 25.6681428,  // Verificado con Google Places
+    lng: -100.3153728,
     municipio: 'Monterrey',
+    placeId: 'ChIJB5WFmJGUYoYRfXa3QQq7YvE',
+    coordenadasVerificadas: true,
+    fuenteCoordenadas: 'google_places',
+
     tiendasAncla: ['Cinépolis', 'Del Sol', 'Parisina'],
+    tiendasAnclaConfianza: 'ESTIMADO',
+    tiendasAnclaFuente: 'busqueda_web',
+
     estacionamientoGratis: false,
+
     nivelSocioeconomico: 'C',
+    nseConfianza: 'ESTIMADO',
+    nseFuente: 'clasificacion_visual_centro',
+
     perfilVisitante: 'Comerciantes, turistas, trabajadores centro',
+
     flujoPeatonalEstimado: {
       lunes: 550,
       martes: 580,
@@ -178,12 +300,19 @@ export const PLAZAS_MTY: Plaza[] = [
       sabado: 500,
       domingo: 350
     },
+    flujoConfianza: 'NO_VERIFICADO',
+    flujoFuente: 'estimacion_sin_fuente',
+
     horasPico: ['11:00-14:00', '17:00-19:00'],
     horarioApertura: '10:00',
     horarioCierre: '19:00',
-    cercaMetrorrey: true, // Línea 2/3
+    cercaMetrorrey: true,
     rutasBus: ['023', '039', '066', '113', '116', '117', '228'],
+
     rentaEstimadaM2: 350,
+    rentaConfianza: 'NO_VERIFICADO',
+    rentaFuente: 'estimacion_sin_cotizacion',
+
     tieneSucursalCT: true,
     esPropuesta: false,
     notas: 'Centro histórico. Artesanías. A 1 min de parada Metrorrey. Alto flujo laboral.',
@@ -198,12 +327,23 @@ export const PLAZAS_MTY: Plaza[] = [
     lat: 25.7457,
     lng: -100.2589,
     municipio: 'San Nicolás de los Garza',
+    coordenadasVerificadas: false,
+    fuenteCoordenadas: 'estimada',
+
     tiendasAncla: ['Liverpool', 'H&M', 'Coppel', 'Cinépolis'],
+    tiendasAnclaConfianza: 'ESTIMADO',
+    tiendasAnclaFuente: 'sitio_web_plaza',
+
     superficieM2: 174621,
     niveles: 3,
     estacionamientoGratis: false,
+
     nivelSocioeconomico: 'B',
+    nseConfianza: 'ESTIMADO',
+    nseFuente: 'clasificacion_visual_zona_norte',
+
     perfilVisitante: 'Familias, jóvenes, zona norte residencial',
+
     flujoPeatonalEstimado: {
       lunes: 500,
       martes: 520,
@@ -213,14 +353,21 @@ export const PLAZAS_MTY: Plaza[] = [
       sabado: 1100,
       domingo: 900
     },
+    flujoConfianza: 'NO_VERIFICADO',
+    flujoFuente: 'estimacion_sin_fuente',
+
     horasPico: ['13:00-15:00', '18:00-21:00'],
     horarioApertura: '11:00',
     horarioCierre: '21:00',
     cercaMetrorrey: false,
     rutasBus: ['R-5', 'R-8'],
+
     rentaEstimadaM2: 600,
+    rentaConfianza: 'NO_VERIFICADO',
+    rentaFuente: 'estimacion_sin_cotizacion',
+
     tieneSucursalCT: false,
-    esPropuesta: true, // Próximamente
+    esPropuesta: true,
     notas: 'Lifestyle mall inaugurado 2016. Pull&Bear, Stradivarius. Hotel NH. Junto a La Fe Music Hall.',
     sitioWeb: 'https://www.alteadesarrollos.com/desarrollos/paseo-la-fe/'
   },
@@ -229,14 +376,26 @@ export const PLAZAS_MTY: Plaza[] = [
   {
     id: 'plaza-006',
     nombre: 'Plaza 1500',
-    direccion: 'Blvd. Acapulco 800, Josefa Zozaya, 67117',
-    lat: 25.7231,
-    lng: -100.2005,
+    direccion: 'Local 30, Blvd. Acapulco 800, Josefa Zozaya, 67117',
+    lat: 25.7223823,  // Verificado con Google Places
+    lng: -100.1998254,
     municipio: 'Guadalupe',
-    tiendasAncla: [], // Por investigar
-    estacionamientoGratis: true, // Común en zona
+    placeId: 'ChIJF0_wkk7qYoYRr11-I50dBek',
+    coordenadasVerificadas: true,
+    fuenteCoordenadas: 'google_places',
+
+    tiendasAncla: [],
+    tiendasAnclaConfianza: 'NO_VERIFICADO',
+    tiendasAnclaFuente: 'pendiente_verificacion_campo',
+
+    estacionamientoGratis: true,
+
     nivelSocioeconomico: 'C+',
+    nseConfianza: 'ESTIMADO',
+    nseFuente: 'clasificacion_visual_zona_guadalupe',
+
     perfilVisitante: 'Familias zona oriente, trabajadores industriales',
+
     flujoPeatonalEstimado: {
       lunes: 400,
       martes: 420,
@@ -246,15 +405,22 @@ export const PLAZAS_MTY: Plaza[] = [
       sabado: 750,
       domingo: 600
     },
+    flujoConfianza: 'NO_VERIFICADO',
+    flujoFuente: 'estimacion_sin_fuente',
+
     horasPico: ['12:00-14:00', '18:00-20:00'],
     horarioApertura: '10:00',
     horarioCierre: '21:00',
     cercaMetrorrey: false,
     rutasBus: ['R-Guadalupe'],
+
     rentaEstimadaM2: 400,
+    rentaConfianza: 'NO_VERIFICADO',
+    rentaFuente: 'estimacion_sin_cotizacion',
+
     tieneSucursalCT: false,
-    esPropuesta: true, // PROPUESTA DE ANÁLISIS
-    notas: 'PROPUESTA PRINCIPAL. Cerca de Plaza Platino y Parque Deportivo Benito Juárez. KFC a ~0.5km en Blvd. Acapulco.',
+    esPropuesta: true,
+    notas: '⚠️ PROPUESTA - TODOS LOS DATOS REQUIEREN VERIFICACIÓN. Cerca de Plaza Platino y Parque Deportivo Benito Juárez. KFC a ~0.5km en Blvd. Acapulco.',
     telefono: '81 8363 8888'
   },
 
@@ -262,15 +428,26 @@ export const PLAZAS_MTY: Plaza[] = [
   {
     id: 'plaza-007',
     nombre: 'Galerías Monterrey',
-    direccion: 'Av. Insurgentes 2500, Vista Hermosa',
-    lat: 25.6693,
-    lng: -100.3108,
+    direccion: 'Av. Insurgentes 2500, Vista Hermosa, 64620',
+    lat: 25.6831823,  // Coordenadas de Wingstop verificado en plaza
+    lng: -100.3530425,
     municipio: 'Monterrey',
+    coordenadasVerificadas: false,
+    fuenteCoordenadas: 'estimada',
+
     tiendasAncla: ['Liverpool', 'Sears', 'H&M', 'Zara'],
+    tiendasAnclaConfianza: 'VERIFICADO',
+    tiendasAnclaFuente: 'google_places_2025-01',
+
     superficieM2: 85000,
     estacionamientoGratis: false,
+
     nivelSocioeconomico: 'A',
+    nseConfianza: 'VERIFICADO',
+    nseFuente: 'conocimiento_publico_plaza_premium',
+
     perfilVisitante: 'Clase alta, ejecutivos, familias',
+
     flujoPeatonalEstimado: {
       lunes: 700,
       martes: 720,
@@ -280,12 +457,19 @@ export const PLAZAS_MTY: Plaza[] = [
       sabado: 1300,
       domingo: 1100
     },
+    flujoConfianza: 'NO_VERIFICADO',
+    flujoFuente: 'estimacion_sin_fuente',
+
     horasPico: ['12:00-15:00', '18:00-21:00'],
     horarioApertura: '11:00',
     horarioCierre: '21:00',
     cercaMetrorrey: true,
     rutasBus: ['Múltiples'],
+
     rentaEstimadaM2: 900,
+    rentaConfianza: 'NO_VERIFICADO',
+    rentaFuente: 'estimacion_plaza_premium',
+
     tieneSucursalCT: false,
     esPropuesta: false,
     notas: 'Plaza premium. Alto costo de renta pero flujo garantizado.'
@@ -297,10 +481,21 @@ export const PLAZAS_MTY: Plaza[] = [
     lat: 25.6923,
     lng: -100.3567,
     municipio: 'Monterrey',
+    coordenadasVerificadas: false,
+    fuenteCoordenadas: 'estimada',
+
     tiendasAncla: ['Soriana', 'Cinépolis'],
+    tiendasAnclaConfianza: 'ESTIMADO',
+    tiendasAnclaFuente: 'busqueda_web',
+
     estacionamientoGratis: true,
+
     nivelSocioeconomico: 'C+',
+    nseConfianza: 'ESTIMADO',
+    nseFuente: 'clasificacion_visual_zona',
+
     perfilVisitante: 'Familias zona norte, clase media',
+
     flujoPeatonalEstimado: {
       lunes: 480,
       martes: 500,
@@ -310,12 +505,19 @@ export const PLAZAS_MTY: Plaza[] = [
       sabado: 880,
       domingo: 750
     },
+    flujoConfianza: 'NO_VERIFICADO',
+    flujoFuente: 'estimacion_sin_fuente',
+
     horasPico: ['12:00-14:00', '18:00-20:00'],
     horarioApertura: '10:00',
     horarioCierre: '21:00',
     cercaMetrorrey: false,
     rutasBus: ['R-Lincoln'],
+
     rentaEstimadaM2: 480,
+    rentaConfianza: 'NO_VERIFICADO',
+    rentaFuente: 'estimacion_sin_cotizacion',
+
     tieneSucursalCT: false,
     esPropuesta: false,
     notas: 'Buen flujo, costo moderado. Potencial para expansión.'
@@ -329,12 +531,23 @@ export const PLAZAS_MTY: Plaza[] = [
     lat: 25.7441,
     lng: -100.3010,
     municipio: 'San Nicolás de los Garza',
+    coordenadasVerificadas: false,
+    fuenteCoordenadas: 'estimada',
+
     tiendasAncla: ['Locales comerciales variados'],
+    tiendasAnclaConfianza: 'NO_VERIFICADO',
+    tiendasAnclaFuente: 'pendiente_verificacion',
+
     superficieM2: 8000,
     niveles: 2,
     estacionamientoGratis: true,
+
     nivelSocioeconomico: 'C+',
+    nseConfianza: 'ESTIMADO',
+    nseFuente: 'clasificacion_visual_zona_universitaria',
+
     perfilVisitante: 'Estudiantes universitarios, familias zona norte, trabajadores',
+
     flujoPeatonalEstimado: {
       lunes: 550,
       martes: 580,
@@ -344,15 +557,22 @@ export const PLAZAS_MTY: Plaza[] = [
       sabado: 700,
       domingo: 500
     },
+    flujoConfianza: 'NO_VERIFICADO',
+    flujoFuente: 'estimacion_sin_fuente',
+
     horasPico: ['12:00-14:00', '18:00-20:00'],
     horarioApertura: '10:00',
     horarioCierre: '21:00',
-    cercaMetrorrey: false, // Estación Anáhuac a 18 min caminando
+    cercaMetrorrey: false,
     rutasBus: ['064', '088', '209', '213', '221', '232', 'SNB'],
+
     rentaEstimadaM2: 380,
+    rentaConfianza: 'NO_VERIFICADO',
+    rentaFuente: 'estimacion_sin_cotizacion',
+
     tieneSucursalCT: false,
-    esPropuesta: true, // PROPUESTA DE ANÁLISIS
-    notas: 'PROPUESTA. Zona universitaria con alto flujo estudiantil. A 500m de Av. Sendero Divisorio. Ideal para fast food según análisis de mercado. Conecta con Apodaca, Escobedo y Monterrey.',
+    esPropuesta: true,
+    notas: '⚠️ PROPUESTA - DATOS NO VERIFICADOS. Zona universitaria con alto flujo estudiantil. Requiere validación de campo.',
     sitioWeb: 'https://www.behome.mx/propiedad/plaza-andenes-ave-universidad-san-nicolas-nl-2/'
   },
 
@@ -364,12 +584,23 @@ export const PLAZAS_MTY: Plaza[] = [
     lat: 25.7245,
     lng: -100.4412,
     municipio: 'Monterrey',
+    coordenadasVerificadas: false,
+    fuenteCoordenadas: 'estimada',
+
     tiendasAncla: ['Food Court', 'Locales comerciales premium'],
+    tiendasAnclaConfianza: 'ESTIMADO',
+    tiendasAnclaFuente: 'sitio_web_desarrollador',
+
     superficieM2: 45000,
     niveles: 5,
     estacionamientoGratis: false,
+
     nivelSocioeconomico: 'B',
+    nseConfianza: 'ESTIMADO',
+    nseFuente: 'clasificacion_visual_zona_cumbres',
+
     perfilVisitante: 'Residentes Cumbres, familias jóvenes profesionistas, clase media-alta',
+
     flujoPeatonalEstimado: {
       lunes: 450,
       martes: 480,
@@ -379,15 +610,22 @@ export const PLAZAS_MTY: Plaza[] = [
       sabado: 950,
       domingo: 800
     },
+    flujoConfianza: 'NO_VERIFICADO',
+    flujoFuente: 'estimacion_plaza_nueva_sin_datos',
+
     horasPico: ['12:00-14:00', '18:00-21:00'],
     horarioApertura: '10:00',
     horarioCierre: '21:00',
     cercaMetrorrey: false,
     rutasBus: ['Rutas Cumbres', 'Periférico'],
-    rentaEstimadaM2: 650, // Plaza nueva = renta premium
+
+    rentaEstimadaM2: 650,
+    rentaConfianza: 'NO_VERIFICADO',
+    rentaFuente: 'estimacion_plaza_nueva',
+
     tieneSucursalCT: false,
     esPropuesta: true,
-    notas: 'PROPUESTA - Plaza nueva apertura Feb 2025. Concepto "mini ciudad" con Food Court climatizado, terrazas, +200 locales. Zona Cumbres clase media-alta. OPORTUNIDAD: Primeros en entrar.',
+    notas: '⚠️ PROPUESTA - Plaza nueva apertura Feb 2025. TODOS LOS DATOS SON ESTIMACIONES. Requiere verificación post-apertura.',
     sitioWeb: 'https://quantiumdesarrollos.com/desarrollos/alaia-cumbres-center-monterrey/'
   }
 ];

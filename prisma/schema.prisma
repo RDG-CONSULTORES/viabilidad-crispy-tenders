@@ -1,0 +1,478 @@
+// =============================================================================
+// ESQUEMA DE BASE DE DATOS - SISTEMA DE VIABILIDAD CRISPY TENDERS
+// =============================================================================
+// Versión: 1.0.0
+// Fecha: 2025-01-23
+// Base de datos: PostgreSQL (Railway)
+//
+// PRINCIPIOS DE DISEÑO:
+// 1. Cada dato debe tener su fuente documentada (fuenteDatos, urlFuente)
+// 2. Cada dato debe tener nivel de confianza (NivelConfianza enum)
+// 3. Toda modificación debe quedar registrada (audit trail)
+// 4. Queries a APIs externas deben cachearse para reducir costos
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =============================================================================
+// ENUMS - Tipos estrictos para PostgreSQL
+// =============================================================================
+
+// Nivel de confianza de un dato
+enum NivelConfianza {
+  VERIFICADO      // Confirmado con fuente primaria (Google Places, INEGI, conteo de campo)
+  ESTIMADO        // Calculado a partir de proxies o suposiciones documentadas
+  CALCULADO       // Resultado de fórmula con datos de entrada documentados
+  NO_VERIFICADO   // Dato legacy sin fuente conocida (marcar para revisión)
+}
+
+// Clasificación de viabilidad
+enum Clasificacion {
+  VIABLE
+  EVALUAR
+  NO_VIABLE
+}
+
+// Status de sucursal
+enum StatusSucursal {
+  OPERANDO
+  PROXIMAMENTE
+  PROPUESTA
+  CERRADA
+}
+
+// Tipo de competencia
+enum TipoCompetencia {
+  DIRECTA
+  INDIRECTA
+}
+
+// Nivel de amenaza
+enum NivelAmenaza {
+  ALTO
+  MEDIO
+  BAJO
+}
+
+// NSE (Nivel Socioeconómico)
+enum NSE {
+  A
+  B
+  C_PLUS   // C+
+  C
+  D
+  E
+}
+
+// Tipo de fuente de datos
+enum TipoFuente {
+  API_EXTERNA
+  DATO_OFICIAL
+  TRABAJO_CAMPO
+  ESTIMACION
+  CALCULO_INTERNO
+}
+
+// Acción de auditoría
+enum AccionAudit {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+// =============================================================================
+// MODELO: Configuración del Sistema
+// =============================================================================
+
+model Configuracion {
+  id                    String   @id @default(cuid())
+  nombre                String   @default("default") @unique
+
+  // Pesos de Scoring (deben sumar 100)
+  // FUENTE: Metodología adaptada de "Retail Site Selection" (Brown, 1992)
+  // y "Location Analysis for Retail" (Ghosh & McLafferty, 1987)
+  pesoFlujoPeatonal     Float    @default(25)
+  pesoTiendasAncla      Float    @default(20)
+  pesoCompetencia       Float    @default(15)
+  pesoPerfilDemografico Float    @default(15)
+  pesoAccesibilidad     Float    @default(10)
+  pesoCostoRenta        Float    @default(10)
+  pesoVisibilidad       Float    @default(5)
+
+  // Umbrales de clasificación
+  umbralViable          Int      @default(75)
+  umbralEvaluar         Int      @default(55)
+
+  // Parámetros de negocio
+  // FUENTE: Datos internos Crispy Tenders 2024
+  ticketPromedio        Float    @default(185)
+  inversionBase         Float    @default(800000)
+  margenOperativo       Float    @default(0.35)
+  metaClientesDia       Int      @default(150)
+
+  // Metadata
+  activa                Boolean  @default(true)
+  creadoEn              DateTime @default(now())
+  actualizadoEn         DateTime @updatedAt
+  creadoPor             String?
+
+  // Relaciones
+  analisis              Analisis[]
+}
+
+// =============================================================================
+// MODELO: Plazas Comerciales
+// =============================================================================
+
+model Plaza {
+  id                    String   @id @default(cuid())
+  codigoInterno         String?  @unique  // "plaza-001", etc
+  nombre                String
+  direccion             String
+
+  // Coordenadas
+  lat                   Float
+  lng                   Float
+
+  // Ubicación
+  municipio             String
+  codigoPostal          String?
+  ageb                  String?  // Clave AGEB de INEGI para cruce demográfico
+
+  // -------------------------------------------------------------------------
+  // DATOS CON TRAZABILIDAD OBLIGATORIA
+  // -------------------------------------------------------------------------
+
+  // Flujo Peatonal
+  flujoPeatonalHora     Int?     // pax/hora promedio
+  flujoPeatonalFuente   String?  // "besttime_api_2025-01-20", "conteo_campo_2025-01-15"
+  flujoPeatonalConfianza NivelConfianza @default(NO_VERIFICADO)
+  flujoPeatonalFechaVerif DateTime?
+
+  // NSE
+  nse                   NSE?
+  nseFuente             String?  // "inegi_ageb_2020", "amai_2022"
+  nseConfianza          NivelConfianza @default(NO_VERIFICADO)
+
+  // Renta
+  rentaEstimadaM2       Float?   // $/m²/mes
+  rentaFuente           String?  // "cotizacion_inmobiliaria_2025-01", "promedio_zona"
+  rentaConfianza        NivelConfianza @default(NO_VERIFICADO)
+
+  // Tiendas Ancla
+  tiendasAncla          String[] // Array de nombres: ["Liverpool", "HEB", "Cinépolis"]
+  tiendasAnclaFuente    String?  // "verificacion_campo_2025-01", "google_places"
+  tiendasAnclaConfianza NivelConfianza @default(NO_VERIFICADO)
+
+  // -------------------------------------------------------------------------
+  // VERIFICACIÓN GOOGLE PLACES
+  // -------------------------------------------------------------------------
+  placeId               String?  @unique
+  coordenadasVerificadas Boolean @default(false)
+  ultimaVerificacionGoogle DateTime?
+
+  // -------------------------------------------------------------------------
+  // METADATA
+  // -------------------------------------------------------------------------
+  activa                Boolean  @default(true)
+  creadoEn              DateTime @default(now())
+  actualizadoEn         DateTime @updatedAt
+  notas                 String?
+
+  // Relaciones
+  analisis              Analisis[]
+
+  @@index([municipio])
+  @@index([nse])
+}
+
+// =============================================================================
+// MODELO: Competidores
+// =============================================================================
+
+model Competidor {
+  id                    String   @id @default(cuid())
+  codigoInterno         String?  @unique  // "kfc-001", etc
+  nombre                String
+  marca                 String   // KFC, Wingstop, El Pollo Loco, etc
+  direccion             String
+
+  // Coordenadas
+  lat                   Float
+  lng                   Float
+  municipio             String
+
+  // Clasificación
+  tipoCompetencia       TipoCompetencia
+  nivelAmenaza          NivelAmenaza
+
+  // Verificación
+  placeId               String?  @unique
+  coordenadasVerificadas Boolean @default(false)
+  fuenteDatos           String?  // "google_places_api_2025-01-23"
+  ultimaVerificacion    DateTime?
+
+  // Metadata
+  activa                Boolean  @default(true)
+  creadoEn              DateTime @default(now())
+  actualizadoEn         DateTime @updatedAt
+
+  @@index([marca])
+  @@index([municipio])
+}
+
+// =============================================================================
+// MODELO: Sucursales Crispy Tenders
+// =============================================================================
+
+model Sucursal {
+  id                    String   @id @default(cuid())
+  codigoInterno         String   @unique  // "ct-001", etc
+  nombre                String
+  plaza                 String
+  direccion             String
+
+  // Coordenadas
+  lat                   Float
+  lng                   Float
+  municipio             String
+
+  // Estado
+  status                StatusSucursal
+
+  // Verificación
+  placeId               String?  @unique
+  coordenadasVerificadas Boolean @default(false)
+  fuenteCoordenadas     String?  // "google_places", "manual", "estimada"
+
+  // -------------------------------------------------------------------------
+  // DATOS OPERATIVOS (SOLO para sucursales OPERANDO)
+  // FUENTE: Estados de Resultados internos Crispy Tenders
+  // -------------------------------------------------------------------------
+  ticketPromedio        Float?
+  ventasMensuales       Float?   // Promedio últimos 3 meses
+  margenOperativo       Float?   // Porcentaje (0.20 = 20%)
+  clientesDiarios       Int?     // Promedio
+
+  // Trazabilidad de datos operativos
+  datosOperativosFuente String?  // "edo_resultados_2024-12", "sistema_pos"
+  datosOperativosPeriodo String? // "2024-Q4", "2024-11 a 2025-01"
+  datosOperativosConfianza NivelConfianza @default(NO_VERIFICADO)
+
+  // -------------------------------------------------------------------------
+  // METADATA
+  // -------------------------------------------------------------------------
+  fechaApertura         DateTime?
+  horarioApertura       String?
+  horarioCierre         String?
+  diasOperacion         String[] // ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
+  notas                 String?
+
+  activa                Boolean  @default(true)
+  creadoEn              DateTime @default(now())
+  actualizadoEn         DateTime @updatedAt
+
+  @@index([status])
+  @@index([municipio])
+}
+
+// =============================================================================
+// MODELO: Análisis Guardados
+// =============================================================================
+
+model Analisis {
+  id                    String   @id @default(cuid())
+  nombre                String
+  descripcion           String?
+
+  // Plaza analizada
+  plazaId               String
+  plaza                 Plaza    @relation(fields: [plazaId], references: [id])
+
+  // Configuración usada (snapshot)
+  configuracionId       String
+  configuracion         Configuracion @relation(fields: [configuracionId], references: [id])
+
+  // -------------------------------------------------------------------------
+  // RESULTADOS DEL SCORING
+  // -------------------------------------------------------------------------
+  scoreTotal            Float
+  clasificacion         Clasificacion
+
+  // Scores por factor (guardados para reproducibilidad)
+  scoreFlujoPeatonal    Float
+  scoreTiendasAncla     Float
+  scoreCompetencia      Float
+  scoreDemografico      Float
+  scoreAccesibilidad    Float
+  scoreCostoRenta       Float
+  scoreVisibilidad      Float
+
+  // -------------------------------------------------------------------------
+  // PROYECCIÓN FINANCIERA
+  // -------------------------------------------------------------------------
+  ventasEstimadas       Float    // Mensuales
+  utilidadEstimada      Float    // Mensual
+  paybackMeses          Float
+  roiAnual              Float    // Porcentaje (150 = 150%)
+
+  // -------------------------------------------------------------------------
+  // TRAZABILIDAD COMPLETA
+  // -------------------------------------------------------------------------
+  // Snapshot de todos los datos de entrada usados
+  datosEntradaJSON      Json     // { flujoPeatonal: 500, nse: "B", ... }
+
+  // Fuente de cada dato usado
+  fuentesDatosJSON      Json     // { flujoPeatonal: "besttime_api", nse: "inegi_ageb", ... }
+
+  // Nivel de confianza de cada dato
+  confianzaDatosJSON    Json     // { flujoPeatonal: "VERIFICADO", nse: "ESTIMADO", ... }
+
+  // Versión de la metodología de cálculo
+  metodologiaVersion    String   @default("v1.0")
+
+  // -------------------------------------------------------------------------
+  // METADATA
+  // -------------------------------------------------------------------------
+  creadoEn              DateTime @default(now())
+  actualizadoEn         DateTime @updatedAt
+  creadoPor             String?
+
+  // Flags
+  requiereValidacionCampo Boolean @default(true)
+  esArchivoHistorico    Boolean  @default(false)
+
+  // Notas
+  notas                 String?
+  recomendaciones       String?
+
+  @@index([plazaId])
+  @@index([clasificacion])
+  @@index([creadoEn])
+}
+
+// =============================================================================
+// MODELO: Cache de APIs
+// =============================================================================
+
+model CacheAPI {
+  id                    String   @id @default(cuid())
+
+  // Identificador de la query
+  endpoint              String   // "google_places", "besttime", "inegi", etc
+  queryHash             String   // Hash MD5 de los parámetros
+  parametros            Json     // Parámetros de la query
+
+  // Respuesta cacheada
+  respuesta             Json
+  statusCode            Int
+
+  // TTL y validez
+  creadoEn              DateTime @default(now())
+  expiraEn              DateTime
+
+  // Estadísticas de uso
+  vecesUsado            Int      @default(1)
+  ultimoUso             DateTime @default(now())
+
+  @@unique([endpoint, queryHash])
+  @@index([endpoint, expiraEn])
+}
+
+// =============================================================================
+// MODELO: Auditoría (Historial de cambios)
+// =============================================================================
+
+model AuditLog {
+  id                    String   @id @default(cuid())
+
+  // Qué se modificó
+  entidad               String   // "Plaza", "Competidor", "Configuracion", etc
+  entidadId             String
+  accion                AccionAudit
+
+  // Cambios
+  camposModificados     String[] // ["flujoPeatonal", "nse"]
+  valoresAnteriores     Json?
+  valoresNuevos         Json?
+
+  // Quién y cuándo
+  usuario               String?
+  creadoEn              DateTime @default(now())
+  ipAddress             String?
+  userAgent             String?
+
+  @@index([entidad, entidadId])
+  @@index([creadoEn])
+}
+
+// =============================================================================
+// MODELO: Fuentes de Datos (Catálogo de referencias)
+// =============================================================================
+
+model FuenteDatos {
+  id                    String   @id @default(cuid())
+
+  // Identificación
+  codigo                String   @unique // "INEGI_DENUE_2024", "GOOGLE_PLACES", etc
+  nombre                String
+  descripcion           String?
+
+  // Tipo y confiabilidad
+  tipo                  TipoFuente
+  nivelConfianza        NivelConfianza
+
+  // Referencia
+  urlDocumentacion      String?
+  metodologiaObtencion  String?
+
+  // Vigencia
+  fechaUltimaActualizacion DateTime?
+  frecuenciaActualizacion  String?  // "diaria", "mensual", "anual", "unica"
+
+  // Metadata
+  activa                Boolean  @default(true)
+  creadoEn              DateTime @default(now())
+  actualizadoEn         DateTime @updatedAt
+}
+
+// =============================================================================
+// MODELO: Fórmulas Documentadas
+// =============================================================================
+
+model FormulaDocumentada {
+  id                    String   @id @default(cuid())
+
+  // Identificación
+  codigo                String   @unique // "SCORE_VIABILIDAD", "ROI_ANUAL", etc
+  nombre                String
+  descripcion           String
+
+  // Fórmula
+  formulaLatex          String?  // Fórmula en LaTeX para documentación
+  formulaTexto          String   // Explicación en texto plano
+  implementacion        String   // "lib/scoring.ts:calcularViabilidad"
+
+  // Fuentes académicas/industriales
+  fuentesBibliograficas Json     // [{ autor, titulo, año, url }]
+
+  // Variables
+  variablesEntrada      Json     // [{ nombre, descripcion, unidad, fuente }]
+  variablesSalida       Json     // [{ nombre, descripcion, unidad }]
+
+  // Validación
+  supuestos             String[] // Supuestos de la fórmula
+  limitaciones          String[] // Limitaciones conocidas
+
+  // Metadata
+  version               String   @default("1.0")
+  creadoEn              DateTime @default(now())
+  actualizadoEn         DateTime @updatedAt
+}
