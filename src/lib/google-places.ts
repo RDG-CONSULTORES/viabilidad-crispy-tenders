@@ -400,6 +400,64 @@ export async function analizarCompetenciaZona(
   };
 }
 
+/**
+ * Busca un lugar por texto (nombre y ubicación aproximada)
+ * Útil para verificar coordenadas de sucursales
+ */
+export async function buscarPorTexto(
+  query: string,
+  lat?: number,
+  lng?: number
+): Promise<PlaceResult | null> {
+  if (!GOOGLE_PLACES_API_KEY) {
+    console.error('GOOGLE_PLACES_API_KEY no configurada');
+    return null;
+  }
+
+  const params = new URLSearchParams({
+    query,
+    key: GOOGLE_PLACES_API_KEY,
+  });
+
+  // Si tenemos ubicación, usarla para sesgar los resultados
+  if (lat && lng) {
+    params.append('location', `${lat},${lng}`);
+    params.append('radius', '5000'); // 5km de radio
+  }
+
+  try {
+    const response = await fetch(`${BASE_URL}/textsearch/json?${params}`, {
+      next: { revalidate: 86400 } // Cache 24 horas
+    });
+
+    const data = await response.json();
+
+    if (data.status !== 'OK' || !data.results || data.results.length === 0) {
+      console.log(`No se encontró: ${query}`, data.status);
+      return null;
+    }
+
+    const place = data.results[0];
+
+    return {
+      placeId: place.place_id,
+      name: place.name,
+      address: place.formatted_address,
+      lat: place.geometry.location.lat,
+      lng: place.geometry.location.lng,
+      rating: place.rating,
+      totalReviews: place.user_ratings_total,
+      priceLevel: place.price_level,
+      isOpen: place.opening_hours?.open_now,
+      businessStatus: place.business_status,
+      types: place.types,
+    };
+  } catch (error) {
+    console.error('Error buscando por texto:', error);
+    return null;
+  }
+}
+
 // ========== HELPERS ==========
 
 /**
